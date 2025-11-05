@@ -9,7 +9,7 @@ const seedDatabase = async () => {
     // Connect to database
     await connectDB();
 
-    // Clear existing data (optional - comment out if you want to keep existing data)
+    // Clear existing data
     console.log('🗑️  Clearing existing test data...');
     await Client.destroy({ where: {} });
     await User.destroy({ where: {} });
@@ -20,40 +20,104 @@ const seedDatabase = async () => {
       fullName: 'Суперадминистратор Системы',
       email: 'admin@probation.kg',
       phone: '+996700000001',
-      password: '123456', // Will be hashed automatically by model hook
+      password: '123456',
       role: 'superadmin',
       district: null,
+      permissions: [],
+      managedDistricts: [],
       isActive: true
     });
     console.log('✅ Superadmin created:', superadmin.email);
 
-    // 2. Create District Admin
-    console.log('👤 Creating district admin...');
-    const districtAdmin = await User.create({
+    // 2. Create Regional Admin
+    console.log('👤 Creating regional admin...');
+    const regionalAdmin = await User.create({
+      fullName: 'Региональный Администратор',
+      email: 'regional@probation.kg',
+      phone: '+996700000002',
+      password: '123456',
+      role: 'regional_admin',
+      district: null,
+      managedDistricts: ['Бишкек', 'Чуй', 'Кара-Балта'],
+      isActive: true
+    });
+    console.log('✅ Regional Admin created:', regionalAdmin.email);
+
+    // 3. Create District Admins
+    console.log('👤 Creating district admins...');
+    const districtAdminBishkek = await User.create({
       fullName: 'Администратор Бишкек',
       email: 'admin.bishkek@probation.kg',
-      phone: '+996700000002',
+      phone: '+996700000003',
       password: '123456',
       role: 'district_admin',
       district: 'Бишкек',
       isActive: true
     });
-    console.log('✅ District Admin created:', districtAdmin.email);
+    console.log('✅ District Admin (Bishkek) created:', districtAdminBishkek.email);
 
-    // 3. Create Officer
-    console.log('👤 Creating officer...');
+    const districtAdminOsh = await User.create({
+      fullName: 'Администратор Ош',
+      email: 'admin.osh@probation.kg',
+      phone: '+996700000004',
+      password: '123456',
+      role: 'district_admin',
+      district: 'Ош',
+      isActive: true
+    });
+    console.log('✅ District Admin (Osh) created:', districtAdminOsh.email);
+
+    // 4. Create Officers
+    console.log('👤 Creating officers...');
     const officer = await User.create({
       fullName: 'Куратор Иванов Иван',
       email: 'officer@probation.kg',
-      phone: '+996700000003',
+      phone: '+996700000005',
       password: '123456',
       role: 'officer',
       district: 'Бишкек',
       isActive: true
     });
-    console.log('✅ Officer created:', officer.email);
+    console.log('✅ Officer 1 created:', officer.email);
 
-    // 4. Create Test Clients
+    const officer2 = await User.create({
+      fullName: 'Куратор Петров Петр',
+      email: 'officer2@probation.kg',
+      phone: '+996700000006',
+      password: '123456',
+      role: 'officer',
+      district: 'Бишкек',
+      isActive: true
+    });
+    console.log('✅ Officer 2 created:', officer2.email);
+
+    // 5. Create Supervisor
+    console.log('👤 Creating supervisor...');
+    const supervisor = await User.create({
+      fullName: 'Супервайзер Сидоров',
+      email: 'supervisor@probation.kg',
+      phone: '+996700000007',
+      password: '123456',
+      role: 'supervisor',
+      district: 'Бишкек',
+      isActive: true
+    });
+    console.log('✅ Supervisor created:', supervisor.email);
+
+    // 6. Create Analyst
+    console.log('👤 Creating analyst...');
+    const analyst = await User.create({
+      fullName: 'Аналитик Системы',
+      email: 'analyst@probation.kg',
+      phone: '+996700000008',
+      password: '123456',
+      role: 'analyst',
+      district: null,
+      isActive: true
+    });
+    console.log('✅ Analyst created:', analyst.email);
+
+    // 7. Create Test Clients
     console.log('👥 Creating test clients...');
 
     const client1 = await Client.create({
@@ -61,7 +125,7 @@ const seedDatabase = async () => {
       idNumber: '1234567890123',
       phone: '+996700111111',
       email: 'client1@probation.kg',
-      password: '123456', // Will be hashed automatically
+      password: '123456',
       district: 'Бишкек',
       assignedHours: 100,
       completedHours: 0,
@@ -103,7 +167,7 @@ const seedDatabase = async () => {
       startDate: new Date('2025-02-01'),
       officerId: officer.id,
       workLocation: 'Площадь Ала-Тоо',
-      notes: 'Тестовый клиент #3 - почти завершил'
+      notes: 'Тестовый клиент #3'
     });
     console.log('✅ Client 3 created:', client3.email);
 
@@ -116,13 +180,23 @@ const seedDatabase = async () => {
     console.log('   Email: admin@probation.kg');
     console.log('   Password: 123456\n');
 
-    console.log('🔐 DISTRICT ADMIN:');
-    console.log('   Email: admin.bishkek@probation.kg');
+    console.log('🔐 REGIONAL ADMIN:');
+    console.log('   Email: regional@probation.kg');
     console.log('   Password: 123456\n');
 
-    console.log('🔐 OFFICER:');
-    console.log('   Email: officer@probation.kg');
-    console.log('   Password: 123456\n');
+    console.log('🔐 DISTRICT ADMINS:');
+    console.log('   Email: admin.bishkek@probation.kg | Password: 123456');
+    console.log('   Email: admin.osh@probation.kg | Password: 123456\n');
+
+    console.log('🔐 OFFICERS:');
+    console.log('   Email: officer@probation.kg | Password: 123456');
+    console.log('   Email: officer2@probation.kg | Password: 123456\n');
+
+    console.log('🔐 SUPERVISOR:');
+    console.log('   Email: supervisor@probation.kg | Password: 123456\n');
+
+    console.log('🔐 ANALYST:');
+    console.log('   Email: analyst@probation.kg | Password: 123456\n');
 
     console.log('🔐 CLIENTS:');
     console.log('   Email: client1@probation.kg | Password: 123456');
