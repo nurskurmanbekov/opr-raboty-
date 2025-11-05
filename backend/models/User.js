@@ -29,13 +29,25 @@ const User = sequelize.define('User', {
     allowNull: false
   },
   role: {
-    type: DataTypes.ENUM('superadmin', 'district_admin', 'officer', 'observer'),
+    type: DataTypes.ENUM('superadmin', 'regional_admin', 'district_admin', 'officer', 'supervisor', 'analyst', 'observer'),
     allowNull: false,
     defaultValue: 'officer'
   },
   district: {
     type: DataTypes.STRING,
-    allowNull: true // null for superadmin
+    allowNull: true // null for superadmin and regional_admin
+  },
+  permissions: {
+    type: DataTypes.JSON,
+    defaultValue: []
+  },
+  managedDistricts: {
+    type: DataTypes.JSON,
+    defaultValue: []
+  },
+  profilePhoto: {
+    type: DataTypes.STRING,
+    allowNull: true
   },
   isActive: {
     type: DataTypes.BOOLEAN,
