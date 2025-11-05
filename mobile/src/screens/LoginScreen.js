@@ -29,10 +29,11 @@ const LoginScreen = ({ navigation }) => {
       const response = await api.post('/auth/login', {
         email: email,
         password: password,
+        userType: 'client', // ВАЖНО: указываем что это клиент!
       });
 
       const { token, user } = response.data.data;
-      
+
       // Проверяем что это клиент
       if (user.role !== 'client') {
         Alert.alert('Ошибка', 'Это приложение только для клиентов');
@@ -45,7 +46,8 @@ const LoginScreen = ({ navigation }) => {
 
       navigation.replace('Home');
     } catch (error) {
-      console.error('Login error:', error.response?.data);
+      console.error('Login error:', error);
+      console.error('Error response:', error.response?.data);
       Alert.alert(
         'Ошибка входа',
         error.response?.data?.message || 'Неверный email или пароль'
@@ -97,7 +99,7 @@ const LoginScreen = ({ navigation }) => {
 
           <View style={styles.testData}>
             <Text style={styles.testDataTitle}>Тестовые данные:</Text>
-            <Text style={styles.testDataText}>Email: alexey@example.com</Text>
+            <Text style={styles.testDataText}>Email: client1@probation.kg</Text>
             <Text style={styles.testDataText}>Пароль: 123456</Text>
           </View>
         </View>

@@ -1,15 +1,19 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// ВАЖНО: Замените на ваш IP адрес!
-const API_URL = 'http://10.99.7.91:5000/api';
+// ВАЖНО: Замените на IP адрес вашего компьютера!
+// Для поиска IP:
+// - Windows: ipconfig (найдите IPv4 Address)
+// - Mac/Linux: ifconfig (найдите inet)
+// - Не используйте localhost или 127.0.0.1!
+const API_URL = 'http://192.168.1.100:5000/api'; // <-- ЗАМЕНИТЕ НА ВАШ IP!
 
 const api = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000,
+  timeout: 30000, // 30 секунд
 });
 
 // Interceptor для добавления токена
