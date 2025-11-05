@@ -56,10 +56,22 @@ exports.login = async (req, res, next) => {
     const { email, password, userType } = req.body; // userType: 'staff' or 'client'
 
     let user;
-    
+    let isClient = false;
+
     if (userType === 'client') {
-      // Login as client (using idNumber instead of email)
-      user = await Client.findOne({ where: { idNumber: email } });
+      // Login as client - try email first, then idNumber
+      user = await Client.findOne({
+        where: {
+          email: email
+        }
+      });
+
+      // If not found by email, try idNumber
+      if (!user) {
+        user = await Client.findOne({ where: { idNumber: email } });
+      }
+
+      isClient = true;
     } else {
       // Login as staff
       user = await User.findOne({ where: { email } });
@@ -82,7 +94,7 @@ exports.login = async (req, res, next) => {
     }
 
     // Update last login (for staff)
-    if (userType !== 'client') {
+    if (!isClient) {
       user.lastLogin = new Date();
       await user.save();
     }
@@ -97,8 +109,11 @@ exports.login = async (req, res, next) => {
           id: user.id,
           fullName: user.fullName,
           email: user.email || user.idNumber,
-          role: user.role || 'client',
-          district: user.district
+          role: isClient ? 'client' : user.role,
+          district: user.district,
+          assignedHours: user.assignedHours || undefined,
+          completedHours: user.completedHours || undefined,
+          status: user.status || undefined
         },
         token
       }

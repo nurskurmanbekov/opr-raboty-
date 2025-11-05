@@ -17,7 +17,15 @@ connectDB();
 
 // Middleware
 app.use(helmet()); // Security headers
-app.use(cors()); // Enable CORS
+
+// CORS configuration - allow requests from mobile app and web frontend
+app.use(cors({
+  origin: '*', // Allow all origins (for development). In production, specify exact origins
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(compression()); // Compress responses
 app.use(express.json()); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
@@ -64,5 +72,6 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`🌐 Local: http://localhost:${PORT}`);
-  console.log(`📱 Network: http://10.99.7.91:${PORT}`);  // ← ИСПРАВИТЬ на правильный IP!
+  console.log(`📱 Network: Server listening on all network interfaces (0.0.0.0:${PORT})`);
+  console.log(`💡 To connect from mobile, use your machine's IP address`);
 });
