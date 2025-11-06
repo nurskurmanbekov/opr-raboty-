@@ -65,6 +65,7 @@ app.use('/api/analytics', require('./routes/analyticsRoutes'));
 app.use('/api/mru', require('./routes/mruRoutes'));
 app.use('/api/districts', require('./routes/districtRoutes'));
 app.use('/api/approvals', require('./routes/approvalRoutes'));
+app.use('/api/officers', require('./routes/officerRoutes'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
