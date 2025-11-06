@@ -1,5 +1,6 @@
 const { WorkSession, Client, Photo, User, LocationHistory } = require('../models');
 const { Op } = require('sequelize');
+const path = require('path');
 
 // @desc    Start work session
 // @route   POST /api/work-sessions/start
@@ -205,10 +206,14 @@ exports.uploadPhoto = async (req, res, next) => {
     console.log('✅ Saving photo to database...');
     console.log('File path:', req.file.path);
 
+    // Save relative path for frontend access
+    const relativePath = `uploads/${req.file.filename}`;
+    console.log('Relative path:', relativePath);
+
     const photo = await Photo.create({
       workSessionId: session.id,
       photoType: photoType || 'process',
-      filePath: req.file.path,
+      filePath: relativePath,
       latitude: latitude ? parseFloat(latitude) : null,
       longitude: longitude ? parseFloat(longitude) : null,
       timestamp: new Date()
