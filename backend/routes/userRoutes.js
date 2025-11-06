@@ -17,7 +17,7 @@ const { requireRole } = require('../middleware/roleCheck');
 router.use(protect); // All routes need authentication
 
 router.post('/', requireRole('superadmin', 'district_admin'), createUser);
-router.get('/', requireRole('superadmin', 'regional_admin', 'district_admin'), getUsers);
+router.get('/', requireRole('superadmin', 'regional_admin', 'district_admin', 'officer'), getUsers);
 router.get('/:id', getUser);
 router.put('/:id', requireRole('superadmin', 'district_admin'), updateUser);
 router.put('/:id/role', requireRole('superadmin'), updateUserRole);

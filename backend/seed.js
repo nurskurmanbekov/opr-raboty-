@@ -38,7 +38,7 @@ const seedDatabase = async () => {
       password: '123456',
       role: 'regional_admin',
       district: null,
-      managedDistricts: ['Бишкек', 'Чуй', 'Кара-Балта'],
+      managedDistricts: ['Bishkek', 'Osh', 'Jalal-Abad'],
       isActive: true
     });
     console.log('✅ Regional Admin created:', regionalAdmin.email);
@@ -51,7 +51,7 @@ const seedDatabase = async () => {
       phone: '+996700000003',
       password: '123456',
       role: 'district_admin',
-      district: 'Бишкек',
+      district: 'Bishkek',
       isActive: true
     });
     console.log('✅ District Admin (Bishkek) created:', districtAdminBishkek.email);
@@ -62,7 +62,7 @@ const seedDatabase = async () => {
       phone: '+996700000004',
       password: '123456',
       role: 'district_admin',
-      district: 'Ош',
+      district: 'Osh',
       isActive: true
     });
     console.log('✅ District Admin (Osh) created:', districtAdminOsh.email);
@@ -75,7 +75,7 @@ const seedDatabase = async () => {
       phone: '+996700000005',
       password: '123456',
       role: 'officer',
-      district: 'Бишкек',
+      district: 'Bishkek',
       isActive: true
     });
     console.log('✅ Officer 1 created:', officer.email);
@@ -86,7 +86,7 @@ const seedDatabase = async () => {
       phone: '+996700000006',
       password: '123456',
       role: 'officer',
-      district: 'Бишкек',
+      district: 'Bishkek',
       isActive: true
     });
     console.log('✅ Officer 2 created:', officer2.email);
@@ -99,7 +99,7 @@ const seedDatabase = async () => {
       phone: '+996700000007',
       password: '123456',
       role: 'supervisor',
-      district: 'Бишкек',
+      district: 'Bishkek',
       isActive: true
     });
     console.log('✅ Supervisor created:', supervisor.email);
@@ -126,7 +126,7 @@ const seedDatabase = async () => {
       phone: '+996700111111',
       email: 'client1@probation.kg',
       password: '123456',
-      district: 'Бишкек',
+      district: 'Bishkek',
       assignedHours: 100,
       completedHours: 0,
       status: 'active',
@@ -143,7 +143,7 @@ const seedDatabase = async () => {
       phone: '+996700222222',
       email: 'client2@probation.kg',
       password: '123456',
-      district: 'Бишкек',
+      district: 'Bishkek',
       assignedHours: 80,
       completedHours: 20,
       status: 'active',
@@ -160,7 +160,7 @@ const seedDatabase = async () => {
       phone: '+996700333333',
       email: 'client3@probation.kg',
       password: '123456',
-      district: 'Бишкек',
+      district: 'Bishkek',
       assignedHours: 60,
       completedHours: 45,
       status: 'active',
