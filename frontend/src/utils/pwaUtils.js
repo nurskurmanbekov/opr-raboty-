@@ -148,7 +148,8 @@ export const subscribeToPushNotifications = async () => {
 
     if (!subscription) {
       // Public VAPID key (should be generated and stored on server)
-      const vapidPublicKey = process.env.REACT_APP_VAPID_PUBLIC_KEY || '';
+      // Vite uses import.meta.env instead of process.env
+      const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY || '';
 
       if (!vapidPublicKey) {
         console.warn('VAPID public key not configured');
