@@ -3,6 +3,7 @@ import { MapPin, Plus, Edit, Trash2, AlertTriangle, Search } from 'lucide-react'
 import Layout from '../components/Layout';
 import { geofencesAPI } from '../api/api';
 import Modal from '../components/Modal';
+import MapPicker from '../components/MapPicker';
 import { useAuth } from '../context/AuthContext';
 
 const DISTRICTS = ['Bishkek', 'Osh', 'Jalal-Abad', 'Karakol', 'Batken', 'Talas', 'Naryn'];
@@ -53,6 +54,14 @@ const Geofences = () => {
     }
   };
 
+  const handleMapLocationChange = (lat, lng) => {
+    setFormData(prev => ({
+      ...prev,
+      latitude: lat.toFixed(6),
+      longitude: lng.toFixed(6)
+    }));
+  };
+
   const handleCreateGeofence = async (e) => {
     e.preventDefault();
     try {
@@ -73,6 +82,7 @@ const Geofences = () => {
         isActive: true
       });
       fetchGeofences();
+      alert('Геозона успешно создана');
     } catch (error) {
       console.error('Error creating geofence:', error);
       alert('Ошибка при создании геозоны');
@@ -390,6 +400,24 @@ const Geofences = () => {
             />
           </div>
 
+          {/* Interactive Map */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              📍 Выберите точку на карте (кликните по карте)
+            </label>
+            <div className="border-2 border-gray-300 rounded-lg overflow-hidden">
+              <MapPicker
+                latitude={formData.latitude}
+                longitude={formData.longitude}
+                radius={formData.radius}
+                onLocationChange={handleMapLocationChange}
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              💡 Подсказка: Кликните по карте чтобы выбрать центр геозоны. Синий круг показывает радиус геозоны.
+            </p>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -527,6 +555,24 @@ const Geofences = () => {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Полный адрес"
             />
+          </div>
+
+          {/* Interactive Map */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              📍 Выберите точку на карте (кликните по карте)
+            </label>
+            <div className="border-2 border-gray-300 rounded-lg overflow-hidden">
+              <MapPicker
+                latitude={formData.latitude}
+                longitude={formData.longitude}
+                radius={formData.radius}
+                onLocationChange={handleMapLocationChange}
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              💡 Подсказка: Кликните по карте чтобы выбрать центр геозоны. Синий круг показывает радиус геозоны.
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
