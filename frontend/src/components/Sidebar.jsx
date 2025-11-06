@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import {
   Home, Users, Activity, BarChart3, Settings, LogOut,
-  MapPin, Bell, UserCog, Shield, Sync, Moon
+  MapPin, Bell, UserCog
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 

@@ -1,12 +1,29 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
-// ВАЖНО: Замените на IP адрес вашего компьютера!
-// Для поиска IP:
-// - Windows: ipconfig (найдите IPv4 Address)
-// - Mac/Linux: ifconfig (найдите inet)
-// - Не используйте localhost или 127.0.0.1!
-const API_URL = 'http://192.168.1.100:5000/api'; // <-- ЗАМЕНИТЕ НА ВАШ IP!
+// НАСТРОЙКА API URL:
+//
+// Для Android Эмулятора используйте: 10.0.2.2
+// Для реального устройства: найдите IP адрес вашего компьютера
+//   - Windows: откройте CMD и введите: ipconfig
+//     Найдите "IPv4 Address" (например: 192.168.1.5)
+//   - Mac/Linux: откройте Terminal и введите: ifconfig | grep "inet "
+//
+// ВАЖНО: Компьютер и телефон должны быть в одной WiFi сети!
+
+const getApiUrl = () => {
+  // Для Android эмулятора используем специальный адрес
+  if (Platform.OS === 'android' && !__DEV__) {
+    return 'http://10.0.2.2:5000/api';
+  }
+
+  // ВАШ IP АДРЕС ЗДЕСЬ (замените на свой!)
+  // Пример: return 'http://192.168.1.5:5000/api';
+  return 'http://10.0.2.2:5000/api'; // <-- ИЗМЕНИТЕ ЕСЛИ ИСПОЛЬЗУЕТЕ РЕАЛЬНОЕ УСТРОЙСТВО!
+};
+
+const API_URL = getApiUrl();
 
 const api = axios.create({
   baseURL: API_URL,
