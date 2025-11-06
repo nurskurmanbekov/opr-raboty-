@@ -2,20 +2,20 @@ const { User } = require('../models');
 
 // @desc    Get all users
 // @route   GET /api/users
-// @access  Private (Admin, District Admin)
+// @access  Private (Admin, District Admin, Officer)
 exports.getUsers = async (req, res, next) => {
   try {
     const { role, district } = req.query;
 
     let whereClause = {};
-    
+
     // Filter by role if provided
     if (role) {
       whereClause.role = role;
     }
 
-    // District admin can only see users from their district
-    if (req.user.role === 'district_admin') {
+    // District admin and officer can only see users from their district
+    if (req.user.role === 'district_admin' || req.user.role === 'officer') {
       whereClause.district = req.user.district;
     } else if (district) {
       whereClause.district = district;
