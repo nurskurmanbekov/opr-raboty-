@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { TrendingUp, Users, Clock, Award } from 'lucide-react';
+import { TrendingUp, Users, Clock, Award, Download, FileText, FileSpreadsheet } from 'lucide-react';
 import api from '../api/axios';
+import { analyticsAPI } from '../api/api';
 import Layout from '../components/Layout';
 
 const Analytics = () => {
@@ -128,11 +129,61 @@ const Analytics = () => {
     );
   }
 
+  const handleExportExcel = async () => {
+    try {
+      const response = await analyticsAPI.exportToExcel();
+      // Create download link
+      const blob = new Blob([response], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `analytics_${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.click();
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      alert('Ошибка при экспорте в Excel');
+    }
+  };
+
+  const handleExportPDF = async () => {
+    try {
+      const response = await analyticsAPI.exportToPDF();
+      // Create download link
+      const blob = new Blob([response], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `analytics_${new Date().toISOString().split('T')[0]}.pdf`;
+      a.click();
+    } catch (error) {
+      console.error('Error exporting to PDF:', error);
+      alert('Ошибка при экспорте в PDF');
+    }
+  };
+
   return (
     <Layout>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">Аналитика и статистика</h1>
-        <p className="text-gray-600 mt-2">Визуализация данных и отчеты</p>
+      <div className="mb-8 flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800">Аналитика и статистика</h1>
+          <p className="text-gray-600 mt-2">Визуализация данных и отчеты</p>
+        </div>
+        <div className="flex space-x-3">
+          <button
+            onClick={handleExportExcel}
+            className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition shadow-md"
+          >
+            <FileSpreadsheet size={18} />
+            <span>Экспорт Excel</span>
+          </button>
+          <button
+            onClick={handleExportPDF}
+            className="flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition shadow-md"
+          >
+            <FileText size={18} />
+            <span>Экспорт PDF</span>
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}

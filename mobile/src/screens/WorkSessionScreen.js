@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,11 +6,65 @@ import {
   Alert,
   ScrollView,
   ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
 import * as Location from 'expo-location';
+import * as TaskManager from 'expo-task-manager';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Camera } from 'expo-camera';
+import NetInfo from '@react-native-community/netinfo';
 import api from '../api/axios';
+import { workSessionsAPI, geofencesAPI, syncAPI } from '../api/api';
 import Button from '../components/Button';
+
+const LOCATION_TASK_NAME = 'background-location-task';
+const LOCATION_TRACKING_INTERVAL = 30000; // 30 seconds
+
+// Define the background location task
+TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
+  if (error) {
+    console.error('Background location error:', error);
+    return;
+  }
+  if (data) {
+    const { locations } = data;
+    const location = locations[0];
+
+    // Get active session and send location update
+    try {
+      const sessionData = await AsyncStorage.getItem('activeSession');
+      if (sessionData) {
+        const session = JSON.parse(sessionData);
+
+        // Check if online
+        const networkState = await NetInfo.fetch();
+
+        if (networkState.isConnected) {
+          // Send location update
+          await workSessionsAPI.updateLocation(session.id, {
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+            accuracy: location.coords.accuracy,
+            altitude: location.coords.altitude,
+            speed: location.coords.speed,
+            heading: location.coords.heading
+          });
+        } else {
+          // Queue for offline sync
+          await syncAPI.addToQueue({
+            operation: 'update_location',
+            data: {
+              workSessionId: session.id,
+              ...location.coords
+            }
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error processing location:', error);
+    }
+  }
+});
 
 const WorkSessionScreen = ({ navigation }) => {
   const [user, setUser] = useState(null);
@@ -18,19 +72,31 @@ const WorkSessionScreen = ({ navigation }) => {
   const [location, setLocation] = useState(null);
   const [loading, setLoading] = useState(false);
   const [timer, setTimer] = useState(0);
-  const [timerInterval, setTimerInterval] = useState(null);
+  const [geofenceStatus, setGeofenceStatus] = useState(null);
+  const [isOnline, setIsOnline] = useState(true);
+  const timerInterval = useRef(null);
+  const locationSubscription = useRef(null);
 
   useEffect(() => {
     loadUser();
     requestLocationPermission();
     checkActiveSession();
+    checkNetworkStatus();
 
     return () => {
-      if (timerInterval) {
-        clearInterval(timerInterval);
+      if (timerInterval.current) {
+        clearInterval(timerInterval.current);
       }
+      stopLocationTracking();
     };
   }, []);
+
+  const checkNetworkStatus = () => {
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setIsOnline(state.isConnected);
+    });
+    return unsubscribe;
+  };
 
   const loadUser = async () => {
     const userData = await AsyncStorage.getItem('user');
@@ -40,11 +106,21 @@ const WorkSessionScreen = ({ navigation }) => {
   };
 
   const requestLocationPermission = async () => {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') {
+    const { status: foregroundStatus } = await Location.requestForegroundPermissionsAsync();
+    if (foregroundStatus !== 'granted') {
       Alert.alert('Ошибка', 'Необходимо разрешение на использование местоположения');
       return;
     }
+
+    const { status: backgroundStatus } = await Location.requestBackgroundPermissionsAsync();
+    if (backgroundStatus !== 'granted') {
+      Alert.alert(
+        'Фоновое отслеживание',
+        'Для точного учета работы требуется разрешение на фоновое отслеживание местоположения',
+        [{ text: 'OK' }]
+      );
+    }
+
     getCurrentLocation();
   };
 
@@ -54,22 +130,29 @@ const WorkSessionScreen = ({ navigation }) => {
         accuracy: Location.Accuracy.High,
       });
       setLocation(location);
+      checkGeofence(location.coords.latitude, location.coords.longitude);
     } catch (error) {
       Alert.alert('Ошибка', 'Не удалось получить местоположение');
     }
   };
 
+  const checkGeofence = async (latitude, longitude) => {
+    try {
+      const response = await geofencesAPI.checkGeofence({ latitude, longitude });
+      setGeofenceStatus(response.data);
+    } catch (error) {
+      console.error('Geofence check error:', error);
+    }
+  };
+
   const checkActiveSession = async () => {
     try {
-      const response = await api.get('/work-sessions', {
-        params: { status: 'in_progress' }
-      });
-      const sessions = response.data.data;
-      const activeSession = sessions.find(s => s.status === 'in_progress');
-      
-      if (activeSession) {
+      const sessionData = await AsyncStorage.getItem('activeSession');
+      if (sessionData) {
+        const activeSession = JSON.parse(sessionData);
         setSession(activeSession);
         startTimer(activeSession.startTime);
+        startLocationTracking(activeSession);
       }
     } catch (error) {
       console.error('Error checking session:', error);
@@ -77,11 +160,42 @@ const WorkSessionScreen = ({ navigation }) => {
   };
 
   const startTimer = (startTime) => {
-    const interval = setInterval(() => {
+    timerInterval.current = setInterval(() => {
       const elapsed = Math.floor((Date.now() - new Date(startTime).getTime()) / 1000);
       setTimer(elapsed);
     }, 1000);
-    setTimerInterval(interval);
+  };
+
+  const startLocationTracking = async (session) => {
+    try {
+      // Start background location tracking
+      await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
+        accuracy: Location.Accuracy.High,
+        timeInterval: LOCATION_TRACKING_INTERVAL,
+        distanceInterval: 50, // Update every 50 meters
+        foregroundService: {
+          notificationTitle: 'Рабочая сессия активна',
+          notificationBody: 'Отслеживание местоположения',
+          notificationColor: '#3b82f6',
+        },
+      });
+
+      console.log('Background location tracking started');
+    } catch (error) {
+      console.error('Error starting location tracking:', error);
+    }
+  };
+
+  const stopLocationTracking = async () => {
+    try {
+      const isTracking = await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK_NAME);
+      if (isTracking) {
+        await Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME);
+        console.log('Background location tracking stopped');
+      }
+    } catch (error) {
+      console.error('Error stopping location tracking:', error);
+    }
   };
 
   const handleStartSession = async () => {
@@ -90,18 +204,62 @@ const WorkSessionScreen = ({ navigation }) => {
       return;
     }
 
+    // Check if in geofence
+    if (geofenceStatus && !geofenceStatus.isInGeofence) {
+      Alert.alert(
+        'Предупреждение',
+        'Вы находитесь вне рабочей зоны. Продолжить?',
+        [
+          { text: 'Отмена', style: 'cancel' },
+          { text: 'Продолжить', onPress: () => startSessionConfirmed() }
+        ]
+      );
+      return;
+    }
+
+    startSessionConfirmed();
+  };
+
+  const startSessionConfirmed = async () => {
     setLoading(true);
     try {
-      const response = await api.post('/work-sessions/start', {
+      const sessionData = {
         clientId: user.id,
         startLatitude: location.coords.latitude,
         startLongitude: location.coords.longitude,
-        workLocation: 'Определяется...',
-      });
+        workLocation: geofenceStatus?.geofence?.name || 'Определяется...',
+      };
 
-      setSession(response.data.data);
-      startTimer(response.data.data.startTime);
-      Alert.alert('Успех', 'Рабочая сессия начата');
+      let newSession;
+
+      if (isOnline) {
+        const response = await workSessionsAPI.startWorkSession(sessionData);
+        newSession = response.data;
+      } else {
+        // Offline mode - create local session and queue for sync
+        newSession = {
+          id: Date.now().toString(),
+          ...sessionData,
+          startTime: new Date().toISOString(),
+          status: 'in_progress',
+          offline: true
+        };
+
+        await syncAPI.addToQueue({
+          operation: 'create_work_session',
+          data: sessionData
+        });
+      }
+
+      await AsyncStorage.setItem('activeSession', JSON.stringify(newSession));
+      setSession(newSession);
+      startTimer(newSession.startTime);
+      startLocationTracking(newSession);
+
+      Alert.alert(
+        'Успех',
+        isOnline ? 'Рабочая сессия начата' : 'Рабочая сессия начата (оффлайн режим)'
+      );
     } catch (error) {
       Alert.alert(
         'Ошибка',
@@ -110,6 +268,17 @@ const WorkSessionScreen = ({ navigation }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleTakePhoto = async () => {
+    const { status } = await Camera.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Ошибка', 'Необходимо разрешение на использование камеры');
+      return;
+    }
+
+    // Navigate to camera screen (would need to create this)
+    Alert.alert('Функция', 'Камера для загрузки фото будет добавлена');
   };
 
   const handleEndSession = async () => {
@@ -128,18 +297,36 @@ const WorkSessionScreen = ({ navigation }) => {
           onPress: async () => {
             setLoading(true);
             try {
-              await api.put(`/work-sessions/${session.id}/end`, {
+              const endData = {
                 endLatitude: location.coords.latitude,
                 endLongitude: location.coords.longitude,
-              });
+              };
 
-              if (timerInterval) {
-                clearInterval(timerInterval);
+              if (isOnline) {
+                await workSessionsAPI.endWorkSession(session.id, endData);
+              } else {
+                // Queue for offline sync
+                await syncAPI.addToQueue({
+                  operation: 'update_work_session',
+                  data: {
+                    workSessionId: session.id,
+                    ...endData
+                  }
+                });
               }
 
-              Alert.alert('Успех', 'Рабочая сессия завершена', [
-                { text: 'OK', onPress: () => navigation.goBack() }
-              ]);
+              await AsyncStorage.removeItem('activeSession');
+              stopLocationTracking();
+
+              if (timerInterval.current) {
+                clearInterval(timerInterval.current);
+              }
+
+              Alert.alert(
+                'Успех',
+                isOnline ? 'Рабочая сессия завершена' : 'Рабочая сессия завершена (будет синхронизировано)',
+                [{ text: 'OK', onPress: () => navigation.goBack() }]
+              );
             } catch (error) {
               Alert.alert(
                 'Ошибка',
@@ -163,6 +350,13 @@ const WorkSessionScreen = ({ navigation }) => {
 
   return (
     <ScrollView style={styles.container}>
+      {/* Network Status Banner */}
+      {!isOnline && (
+        <View style={styles.offlineBanner}>
+          <Text style={styles.offlineText}>📡 Оффлайн режим - данные будут синхронизированы позже</Text>
+        </View>
+      )}
+
       {/* Location Card */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>📍 Местоположение</Text>
@@ -183,6 +377,23 @@ const WorkSessionScreen = ({ navigation }) => {
         )}
       </View>
 
+      {/* Geofence Status */}
+      {geofenceStatus && (
+        <View style={[styles.card, { backgroundColor: geofenceStatus.isInGeofence ? '#d1fae5' : '#fee2e2' }]}>
+          <Text style={styles.cardTitle}>
+            {geofenceStatus.isInGeofence ? '✅ В рабочей зоне' : '⚠️ Вне рабочей зоны'}
+          </Text>
+          <Text style={styles.geofenceText}>
+            {geofenceStatus.geofence?.name || 'Геозона не определена'}
+          </Text>
+          {geofenceStatus.distance && (
+            <Text style={styles.geofenceDistance}>
+              Расстояние: {geofenceStatus.distance.toFixed(0)} м
+            </Text>
+          )}
+        </View>
+      )}
+
       {/* Timer Card */}
       {session && (
         <View style={styles.card}>
@@ -191,6 +402,11 @@ const WorkSessionScreen = ({ navigation }) => {
           <Text style={styles.timerLabel}>
             Начато: {new Date(session.startTime).toLocaleTimeString('ru-RU')}
           </Text>
+          {session.offline && (
+            <View style={styles.offlineTag}>
+              <Text style={styles.offlineTagText}>Оффлайн сессия</Text>
+            </View>
+          )}
         </View>
       )}
 
@@ -210,12 +426,19 @@ const WorkSessionScreen = ({ navigation }) => {
       {/* Actions */}
       <View style={styles.actions}>
         {session ? (
-          <Button
-            title="Завершить рабочую сессию"
-            onPress={handleEndSession}
-            loading={loading}
-            style={styles.endButton}
-          />
+          <>
+            <Button
+              title="📸 Загрузить фото"
+              onPress={handleTakePhoto}
+              style={styles.photoButton}
+            />
+            <Button
+              title="Завершить рабочую сессию"
+              onPress={handleEndSession}
+              loading={loading}
+              style={styles.endButton}
+            />
+          </>
         ) : (
           <Button
             title="Начать рабочую сессию"
@@ -233,10 +456,13 @@ const WorkSessionScreen = ({ navigation }) => {
           • Включите GPS для точного отслеживания
         </Text>
         <Text style={styles.infoText}>
-          • Не выключайте приложение во время работы
+          • Местоположение обновляется каждые 30 секунд
         </Text>
         <Text style={styles.infoText}>
-          • Часы будут зафиксированы автоматически
+          • Работает в оффлайн режиме
+        </Text>
+        <Text style={styles.infoText}>
+          • Автоматическая синхронизация при подключении
         </Text>
       </View>
     </ScrollView>
@@ -247,6 +473,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f3f4f6',
+  },
+  offlineBanner: {
+    backgroundColor: '#fbbf24',
+    padding: 12,
+    alignItems: 'center',
+  },
+  offlineText: {
+    color: '#78350f',
+    fontWeight: '600',
+    fontSize: 14,
   },
   card: {
     backgroundColor: '#fff',
@@ -275,6 +511,16 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     marginTop: 8,
   },
+  geofenceText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#374151',
+  },
+  geofenceDistance: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginTop: 8,
+  },
   timerText: {
     fontSize: 48,
     fontWeight: 'bold',
@@ -286,6 +532,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6b7280',
     textAlign: 'center',
+  },
+  offlineTag: {
+    marginTop: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: '#fef3c7',
+    borderRadius: 8,
+    alignSelf: 'center',
+  },
+  offlineTagText: {
+    color: '#92400e',
+    fontSize: 12,
+    fontWeight: '600',
   },
   statusActive: {
     flexDirection: 'row',
@@ -314,6 +573,10 @@ const styles = StyleSheet.create({
   },
   actions: {
     padding: 16,
+    gap: 12,
+  },
+  photoButton: {
+    backgroundColor: '#8b5cf6',
   },
   endButton: {
     backgroundColor: '#ef4444',
