@@ -9,3 +9,7 @@ npm-debug.*
 *.mobileprovision
 *.orig.*
 web-build/
+
+# Environment variables
+.env
+.env.local

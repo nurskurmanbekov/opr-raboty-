@@ -102,12 +102,33 @@ exports.updateUser = async (req, res, next) => {
 // @access  Private (Superadmin only)
 exports.deleteUser = async (req, res, next) => {
   try {
-    const user = await User.findByPk(req.params.id);
+    const { id } = req.params;
+
+    // Cannot delete yourself
+    if (id === req.user.id) {
+      return res.status(400).json({
+        success: false,
+        message: 'You cannot delete yourself'
+      });
+    }
+
+    const user = await User.findByPk(id);
 
     if (!user) {
       return res.status(404).json({
         success: false,
         message: 'User not found'
+      });
+    }
+
+    // Check if user has active clients
+    const Client = require('../models').Client;
+    const clientCount = await Client.count({ where: { officerId: id } });
+
+    if (clientCount > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot delete user with ${clientCount} active clients. Please reassign clients first.`
       });
     }
 
