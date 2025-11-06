@@ -14,8 +14,14 @@ async function fixPhotoPaths() {
     for (const photo of photos) {
       const oldPath = photo.filePath;
 
-      // Check if path contains full Windows path
-      if (oldPath && oldPath.includes('C:/probation_system/backend/uploads/')) {
+      // Check if path contains full Windows path (both forward and backward slashes)
+      const hasFullPath = oldPath && (
+        oldPath.includes('C:/probation_system/backend/uploads/') ||
+        oldPath.includes('C:\\probation_system\\backend\\uploads\\') ||
+        oldPath.includes('C:')
+      );
+
+      if (hasFullPath) {
         // Extract just the filename
         const filename = path.basename(oldPath);
         const newPath = `uploads/${filename}`;
