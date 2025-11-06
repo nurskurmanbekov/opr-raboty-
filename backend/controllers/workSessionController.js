@@ -182,10 +182,13 @@ exports.getWorkSession = async (req, res, next) => {
 exports.uploadPhoto = async (req, res, next) => {
   try {
     console.log('📸 Upload photo request received');
+    console.log('Session ID:', req.params.id);
     console.log('File:', req.file);
     console.log('Body:', req.body);
+    console.log('User:', req.user?.id);
 
     if (!req.file) {
+      console.error('❌ No file received in request');
       return res.status(400).json({
         success: false,
         message: 'Please upload a photo'
@@ -194,21 +197,24 @@ exports.uploadPhoto = async (req, res, next) => {
 
     const { photoType, latitude, longitude } = req.body;
 
+    console.log('🔍 Looking for work session:', req.params.id);
     const session = await WorkSession.findByPk(req.params.id);
 
     if (!session) {
+      console.error('❌ Work session not found:', req.params.id);
       return res.status(404).json({
         success: false,
         message: 'Work session not found'
       });
     }
 
-    console.log('✅ Saving photo to database...');
-    console.log('File path:', req.file.path);
+    console.log('✅ Work session found:', session.id);
+    console.log('✅ File saved to disk:', req.file.path);
+    console.log('📁 File size:', req.file.size, 'bytes');
 
     // Save relative path for frontend access
     const relativePath = `uploads/${req.file.filename}`;
-    console.log('Relative path:', relativePath);
+    console.log('💾 Saving to database with relative path:', relativePath);
 
     const photo = await Photo.create({
       workSessionId: session.id,
@@ -219,7 +225,9 @@ exports.uploadPhoto = async (req, res, next) => {
       timestamp: new Date()
     });
 
-    console.log('✅ Photo saved successfully:', photo.id);
+    console.log('✅ Photo saved successfully to database!');
+    console.log('Photo ID:', photo.id);
+    console.log('Photo path:', photo.filePath);
 
     res.status(201).json({
       success: true,
@@ -227,8 +235,17 @@ exports.uploadPhoto = async (req, res, next) => {
       data: photo
     });
   } catch (error) {
-    console.error('❌ Error uploading photo:', error);
-    next(error);
+    console.error('❌ Error uploading photo:');
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+
+    // Send detailed error response
+    res.status(500).json({
+      success: false,
+      message: 'Failed to upload photo',
+      error: error.message
+    });
   }
 };
 
