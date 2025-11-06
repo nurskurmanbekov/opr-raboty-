@@ -61,6 +61,10 @@ app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/face-verification', require('./routes/faceVerificationRoutes'));
 app.use('/api/sync', require('./routes/syncRoutes'));
 app.use('/api/analytics', require('./routes/analyticsRoutes'));
+// Новые маршруты для системы ролей
+app.use('/api/mru', require('./routes/mruRoutes'));
+app.use('/api/districts', require('./routes/districtRoutes'));
+app.use('/api/approvals', require('./routes/approvalRoutes'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {

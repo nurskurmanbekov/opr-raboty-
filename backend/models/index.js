@@ -10,6 +10,12 @@ const DeviceToken = require('./DeviceToken');
 const Notification = require('./Notification');
 const FaceVerification = require('./FaceVerification');
 const SyncQueue = require('./SyncQueue');
+// Новые модели для системы ролей
+const MRU = require('./MRU');
+const District = require('./District');
+const PendingApproval = require('./PendingApproval');
+const ClientAssignmentHistory = require('./ClientAssignmentHistory');
+const AuditorPermission = require('./AuditorPermission');
 
 // Relationships
 
@@ -81,6 +87,38 @@ FaceVerification.belongsTo(WorkSession, { foreignKey: 'workSessionId', as: 'work
 User.hasMany(SyncQueue, { foreignKey: 'userId', as: 'syncQueue' });
 SyncQueue.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
+// === НОВЫЕ СВЯЗИ ДЛЯ СИСТЕМЫ РОЛЕЙ ===
+
+// MRU -> District (МРУ имеет много районов)
+MRU.hasMany(District, { foreignKey: 'mruId', as: 'districts' });
+District.belongsTo(MRU, { foreignKey: 'mruId', as: 'mru' });
+
+// MRU -> User (МРУ имеет менеджера и офицеров)
+MRU.hasMany(User, { foreignKey: 'mruId', as: 'users' });
+User.belongsTo(MRU, { foreignKey: 'mruId', as: 'mru' });
+
+// District -> User (Район имеет менеджера и офицеров)
+District.hasMany(User, { foreignKey: 'districtId', as: 'users' });
+User.belongsTo(District, { foreignKey: 'districtId', as: 'assignedDistrict' });
+
+// Client -> ClientAssignmentHistory (История переназначений клиента)
+Client.hasMany(ClientAssignmentHistory, { foreignKey: 'clientId', as: 'assignmentHistory' });
+ClientAssignmentHistory.belongsTo(Client, { foreignKey: 'clientId', as: 'client' });
+
+// User -> ClientAssignmentHistory (Офицер -> клиенты которые у него были)
+User.hasMany(ClientAssignmentHistory, { foreignKey: 'newOfficerId', as: 'receivedAssignments' });
+User.hasMany(ClientAssignmentHistory, { foreignKey: 'previousOfficerId', as: 'givenAssignments' });
+
+// User -> PendingApproval (Заявки на одобрение)
+User.hasMany(PendingApproval, { foreignKey: 'requesterId', as: 'createdApprovals' });
+User.hasMany(PendingApproval, { foreignKey: 'reviewerId', as: 'reviewedApprovals' });
+PendingApproval.belongsTo(User, { foreignKey: 'requesterId', as: 'requester' });
+PendingApproval.belongsTo(User, { foreignKey: 'reviewerId', as: 'reviewer' });
+
+// User -> AuditorPermission (Права аудитора)
+User.hasOne(AuditorPermission, { foreignKey: 'auditorId', as: 'auditorPermissions' });
+AuditorPermission.belongsTo(User, { foreignKey: 'auditorId', as: 'auditor' });
+
 module.exports = {
   User,
   Client,
@@ -93,5 +131,11 @@ module.exports = {
   DeviceToken,
   Notification,
   FaceVerification,
-  SyncQueue
+  SyncQueue,
+  // Новые модели
+  MRU,
+  District,
+  PendingApproval,
+  ClientAssignmentHistory,
+  AuditorPermission
 };

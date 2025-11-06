@@ -29,13 +29,36 @@ const User = sequelize.define('User', {
     allowNull: false
   },
   role: {
-    type: DataTypes.ENUM('superadmin', 'regional_admin', 'district_admin', 'officer', 'supervisor', 'analyst', 'observer'),
+    type: DataTypes.ENUM('superadmin', 'regional_admin', 'district_admin', 'officer', 'supervisor', 'analyst', 'observer', 'central_admin', 'mru_manager', 'district_manager', 'auditor', 'client'),
     allowNull: false,
     defaultValue: 'officer'
   },
+  // Старое поле district (для обратной совместимости)
   district: {
     type: DataTypes.STRING,
-    allowNull: true // null for superadmin and regional_admin
+    allowNull: true
+  },
+  // Новые поля для иерархии МРУ -> Район
+  mruId: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    comment: 'ID МРУ (для mru_manager, district_manager, officer)'
+  },
+  districtId: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    comment: 'ID района (для district_manager, officer)'
+  },
+  organization: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    comment: 'Организация (для auditor)'
+  },
+  approvalStatus: {
+    type: DataTypes.ENUM('pending', 'approved', 'rejected'),
+    allowNull: true,
+    defaultValue: 'approved',
+    comment: 'Статус одобрения (для новых офицеров)'
   },
   permissions: {
     type: DataTypes.JSON,
