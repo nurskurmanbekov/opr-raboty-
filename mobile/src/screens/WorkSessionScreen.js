@@ -7,9 +7,11 @@ import {
   ScrollView,
   ActivityIndicator,
   TouchableOpacity,
+  Image,
 } from 'react-native';
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
+import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Camera } from 'expo-camera';
 import NetInfo from '@react-native-community/netinfo';
@@ -271,14 +273,95 @@ const WorkSessionScreen = ({ navigation }) => {
   };
 
   const handleTakePhoto = async () => {
-    const { status } = await Camera.requestCameraPermissionsAsync();
+    if (!session) {
+      Alert.alert('Ошибка', 'Сначала начните рабочую сессию');
+      return;
+    }
+
+    // Request camera permissions
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('Ошибка', 'Необходимо разрешение на использование камеры');
       return;
     }
 
-    // Navigate to camera screen (would need to create this)
-    Alert.alert('Функция', 'Камера для загрузки фото будет добавлена');
+    Alert.alert(
+      'Загрузить фото',
+      'Выберите способ загрузки',
+      [
+        {
+          text: 'Камера',
+          onPress: async () => {
+            const result = await ImagePicker.launchCameraAsync({
+              mediaTypes: ImagePicker.MediaTypeOptions.Images,
+              allowsEditing: true,
+              aspect: [4, 3],
+              quality: 0.7,
+            });
+
+            if (!result.canceled && result.assets[0]) {
+              await uploadPhoto(result.assets[0].uri);
+            }
+          }
+        },
+        {
+          text: 'Галерея',
+          onPress: async () => {
+            const result = await ImagePicker.launchImageLibraryAsync({
+              mediaTypes: ImagePicker.MediaTypeOptions.Images,
+              allowsEditing: true,
+              aspect: [4, 3],
+              quality: 0.7,
+            });
+
+            if (!result.canceled && result.assets[0]) {
+              await uploadPhoto(result.assets[0].uri);
+            }
+          }
+        },
+        { text: 'Отмена', style: 'cancel' }
+      ]
+    );
+  };
+
+  const uploadPhoto = async (uri) => {
+    try {
+      setLoading(true);
+
+      // Create form data
+      const formData = new FormData();
+      const filename = uri.split('/').pop();
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+      formData.append('photo', {
+        uri,
+        name: filename,
+        type,
+      });
+
+      if (isOnline) {
+        // Upload photo immediately
+        await workSessionsAPI.uploadPhoto(session.id, formData);
+        Alert.alert('Успех', 'Фото успешно загружено');
+      } else {
+        // Queue for offline sync
+        await syncAPI.addToQueue({
+          operation: 'upload_photo',
+          data: {
+            workSessionId: session.id,
+            photoUri: uri
+          }
+        });
+        Alert.alert('Оффлайн', 'Фото будет загружено при подключении к интернету');
+      }
+
+      setLoading(false);
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      Alert.alert('Ошибка', 'Не удалось загрузить фото');
+      setLoading(false);
+    }
   };
 
   const handleEndSession = async () => {
