@@ -1,7 +1,7 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 
-const Photo = sequelize.define('Photo', {
+const LocationHistory = sequelize.define('LocationHistory', {
   id: {
     type: DataTypes.UUID,
     defaultValue: DataTypes.UUIDV4,
@@ -15,19 +15,35 @@ const Photo = sequelize.define('Photo', {
       key: 'id'
     }
   },
-  photoType: {
-    type: DataTypes.ENUM('start', 'end', 'process'),
-    allowNull: false
-  },
-  filePath: {
-    type: DataTypes.STRING,
-    allowNull: false
+  clientId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: 'Clients',
+      key: 'id'
+    }
   },
   latitude: {
     type: DataTypes.FLOAT,
-    allowNull: true
+    allowNull: false
   },
   longitude: {
+    type: DataTypes.FLOAT,
+    allowNull: false
+  },
+  accuracy: {
+    type: DataTypes.FLOAT,
+    allowNull: true
+  },
+  speed: {
+    type: DataTypes.FLOAT,
+    allowNull: true
+  },
+  altitude: {
+    type: DataTypes.FLOAT,
+    allowNull: true
+  },
+  heading: {
     type: DataTypes.FLOAT,
     allowNull: true
   },
@@ -35,17 +51,10 @@ const Photo = sequelize.define('Photo', {
     type: DataTypes.DATE,
     allowNull: false,
     defaultValue: DataTypes.NOW
-  },
-  watermarkApplied: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false
-  },
-  metadata: {
-    type: DataTypes.JSON,
-    defaultValue: {}
   }
 }, {
-  timestamps: true
+  timestamps: true,
+  updatedAt: false
 });
 
-module.exports = Photo;
+module.exports = LocationHistory;

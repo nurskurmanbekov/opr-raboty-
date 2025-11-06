@@ -5,6 +5,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const compression = require('compression');
 const { connectDB } = require('./config/database');
+const { initializeFirebase } = require('./config/firebase');
 
 // Load environment variables
 dotenv.config();
@@ -14,6 +15,9 @@ const app = express();
 
 // Connect to database
 connectDB();
+
+// Initialize Firebase for push notifications
+initializeFirebase();
 
 // Middleware
 app.use(helmet()); // Security headers
@@ -43,11 +47,17 @@ app.get('/', (req, res) => {
   });
 });
 
-// API Routes (will add later)
+// API Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/clients', require('./routes/clientRoutes'));
 app.use('/api/work-sessions', require('./routes/workSessionRoutes'));
+app.use('/api/profile', require('./routes/profileRoutes'));
+app.use('/api/geofences', require('./routes/geofenceRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
+app.use('/api/face-verification', require('./routes/faceVerificationRoutes'));
+app.use('/api/sync', require('./routes/syncRoutes'));
+app.use('/api/analytics', require('./routes/analyticsRoutes'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
