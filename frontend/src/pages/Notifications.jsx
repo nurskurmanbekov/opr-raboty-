@@ -49,9 +49,17 @@ const Notifications = () => {
     try {
       setLoading(true);
       const response = await notificationsAPI.getNotifications();
-      setNotifications(response.data || []);
+
+      // Ensure we always set an array
+      const notificationsData = response?.data || response || [];
+      const notificationsArray = Array.isArray(notificationsData)
+        ? notificationsData
+        : [];
+
+      setNotifications(notificationsArray);
     } catch (error) {
       console.error('Error fetching notifications:', error);
+      setNotifications([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -86,7 +94,9 @@ const Notifications = () => {
     }
   };
 
-  const filteredNotifications = notifications.filter(notification => {
+  // Ensure notifications is always an array before filtering
+  const notificationsArray = Array.isArray(notifications) ? notifications : [];
+  const filteredNotifications = notificationsArray.filter(notification => {
     if (filter === 'unread') return !notification.isRead;
     if (filter === 'read') return notification.isRead;
     return true;

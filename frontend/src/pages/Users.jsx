@@ -3,6 +3,7 @@ import { UserPlus, Edit, Trash2, Check, X, Search } from 'lucide-react';
 import Layout from '../components/Layout';
 import { usersAPI } from '../api/api';
 import Modal from '../components/Modal';
+import { useAuth } from '../context/AuthContext';
 
 const ROLES = [
   { value: 'superadmin', label: 'Супер Администратор', color: 'bg-red-100 text-red-800' },
@@ -17,12 +18,14 @@ const ROLES = [
 const DISTRICTS = ['Bishkek', 'Osh', 'Jalal-Abad', 'Karakol', 'Batken', 'Talas', 'Naryn'];
 
 const Users = () => {
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [deleteModal, setDeleteModal] = useState({ open: false, user: null });
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -95,6 +98,19 @@ const Users = () => {
       fetchUsers();
     } catch (error) {
       console.error('Error deactivating user:', error);
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    try {
+      await usersAPI.deleteUser(deleteModal.user.id);
+      setDeleteModal({ open: false, user: null });
+      fetchUsers();
+      alert('Пользователь успешно удален');
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      const errorMessage = error.response?.data?.message || 'Ошибка при удалении пользователя';
+      alert(errorMessage);
     }
   };
 
@@ -221,6 +237,15 @@ const Users = () => {
                             title="Активировать"
                           >
                             <Check size={18} />
+                          </button>
+                        )}
+                        {currentUser?.role === 'superadmin' && user.id !== currentUser.id && (
+                          <button
+                            onClick={() => setDeleteModal({ open: true, user })}
+                            className="text-red-600 hover:text-red-800 transition"
+                            title="Удалить пользователя"
+                          >
+                            <Trash2 size={18} />
                           </button>
                         )}
                       </div>
@@ -359,6 +384,36 @@ const Users = () => {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Delete User Confirmation Modal */}
+      <Modal
+        isOpen={deleteModal.open}
+        onClose={() => setDeleteModal({ open: false, user: null })}
+        title="Подтверждение удаления"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-700">
+            Вы действительно хотите удалить пользователя <strong>{deleteModal.user?.fullName}</strong>?
+          </p>
+          <p className="text-sm text-red-600">
+            Это действие необратимо. Пользователь будет удален из системы.
+          </p>
+          <div className="flex space-x-3 pt-4">
+            <button
+              onClick={handleDeleteUser}
+              className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
+            >
+              Удалить
+            </button>
+            <button
+              onClick={() => setDeleteModal({ open: false, user: null })}
+              className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition"
+            >
+              Отмена
+            </button>
+          </div>
+        </div>
       </Modal>
     </Layout>
   );
