@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import {
   Home, Users, Activity, BarChart3, Settings, LogOut,
-  MapPin, Bell, UserCog
+  MapPin, Bell, UserCog, Building2, Map, CheckSquare
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -14,6 +14,9 @@ const Sidebar = () => {
     { path: '/clients', icon: Users, label: 'Клиенты', roles: ['all'] },
     { path: '/sessions', icon: Activity, label: 'Рабочие сессии', roles: ['all'] },
     { path: '/analytics', icon: BarChart3, label: 'Аналитика', roles: ['all'] },
+    { path: '/approvals', icon: CheckSquare, label: 'Заявки', roles: ['superadmin', 'central_admin'] },
+    { path: '/mru', icon: Building2, label: 'МРУ', roles: ['superadmin', 'central_admin'] },
+    { path: '/districts', icon: Map, label: 'Районы', roles: ['superadmin', 'central_admin'] },
     { path: '/geofences', icon: MapPin, label: 'Геозоны', roles: ['superadmin', 'regional_admin', 'district_admin'] },
     { path: '/notifications', icon: Bell, label: 'Уведомления', roles: ['all'] },
     { path: '/users', icon: UserCog, label: 'Пользователи', roles: ['superadmin', 'regional_admin', 'district_admin'] },

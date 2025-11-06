@@ -11,6 +11,9 @@ import Users from './pages/Users';
 import Geofences from './pages/Geofences';
 import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
+import MRUManagement from './pages/MRUManagement';
+import DistrictManagement from './pages/DistrictManagement';
+import Approvals from './pages/Approvals';
 
 // Protected Route wrapper
 const ProtectedRoute = ({ children }) => {
@@ -113,6 +116,30 @@ function AppContent() {
         element={
           <ProtectedRoute>
             <Profile />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mru"
+        element={
+          <ProtectedRoute>
+            <MRUManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/districts"
+        element={
+          <ProtectedRoute>
+            <DistrictManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/approvals"
+        element={
+          <ProtectedRoute>
+            <Approvals />
           </ProtectedRoute>
         }
       />
