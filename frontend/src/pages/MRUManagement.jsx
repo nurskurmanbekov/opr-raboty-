@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
 import { Building2, Plus, Edit, Trash2, Search, BarChart } from 'lucide-react';
 import Layout from '../components/Layout';
 import { mruAPI } from '../api/api';
@@ -31,7 +33,7 @@ const MRUManagement = () => {
       setMrus(response.data || []);
     } catch (error) {
       console.error('Ошибка при загрузке МРУ:', error);
-      alert('Ошибка при загрузке МРУ');
+      toast.error('Ошибка при загрузке МРУ');
     } finally {
       setLoading(false);
     }
@@ -39,43 +41,45 @@ const MRUManagement = () => {
 
   const handleCreateMRU = async (e) => {
     e.preventDefault();
+    const loadingToast = toast.loading('Создание МРУ...');
     try {
       await mruAPI.createMRU(formData);
       setShowCreateModal(false);
       setFormData({ name: '', region: '', code: '' });
       fetchMRUs();
-      alert('МРУ успешно создано');
+      toast.success('МРУ успешно создано', { id: loadingToast });
     } catch (error) {
       console.error('Ошибка при создании МРУ:', error);
-      alert(error.message || 'Ошибка при создании МРУ');
+      toast.error(error.message || 'Ошибка при создании МРУ', { id: loadingToast });
     }
   };
 
   const handleUpdateMRU = async (e) => {
     e.preventDefault();
+    const loadingToast = toast.loading('Обновление МРУ...');
     try {
       await mruAPI.updateMRU(selectedMRU.id, formData);
       setShowEditModal(false);
       setSelectedMRU(null);
       setFormData({ name: '', region: '', code: '' });
       fetchMRUs();
-      alert('МРУ успешно обновлено');
+      toast.success('МРУ успешно обновлено', { id: loadingToast });
     } catch (error) {
       console.error('Ошибка при обновлении МРУ:', error);
-      alert(error.message || 'Ошибка при обновлении МРУ');
+      toast.error(error.message || 'Ошибка при обновлении МРУ', { id: loadingToast });
     }
   };
 
   const handleDeleteMRU = async () => {
+    const loadingToast = toast.loading('Удаление МРУ...');
     try {
       await mruAPI.deleteMRU(deleteModal.mru.id);
       setDeleteModal({ open: false, mru: null });
       fetchMRUs();
-      alert('МРУ успешно удалено');
+      toast.success('МРУ успешно удалено', { id: loadingToast });
     } catch (error) {
       console.error('Ошибка при удалении МРУ:', error);
-      const errorMessage = error.message || 'Ошибка при удалении МРУ';
-      alert(errorMessage);
+      toast.error(error.message || 'Ошибка при удалении МРУ', { id: loadingToast });
     }
   };
 
@@ -87,7 +91,7 @@ const MRUManagement = () => {
       setShowStatsModal(true);
     } catch (error) {
       console.error('Ошибка при загрузке статистики:', error);
-      alert('Ошибка при загрузке статистики');
+      toast.error('Ошибка при загрузке статистики');
     }
   };
 
@@ -110,22 +114,35 @@ const MRUManagement = () => {
   return (
     <Layout>
       {/* Header */}
-      <div className="mb-8 flex justify-between items-center">
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-8 flex justify-between items-center"
+      >
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Управление МРУ</h1>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Управление МРУ
+          </h1>
           <p className="text-gray-600 mt-2">Межрайонные управления пробации</p>
         </div>
-        <button
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center space-x-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition shadow-md"
+          className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-6 py-3 rounded-lg hover:shadow-lg transition shadow-md"
         >
           <Plus size={20} />
           <span>Добавить МРУ</span>
-        </button>
-      </div>
+        </motion.button>
+      </motion.div>
 
       {/* Search */}
-      <div className="mb-6">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="mb-6"
+      >
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
           <input
@@ -133,105 +150,114 @@ const MRUManagement = () => {
             placeholder="Поиск по названию, региону или коду..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
-      </div>
+      </motion.div>
 
-      {/* МРУ Table */}
+      {/* МРУ Grid */}
       {loading ? (
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="bg-white p-6 rounded-xl shadow-md animate-pulse">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
+                <div className="flex-1">
+                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                </div>
+              </div>
+              <div className="h-3 bg-gray-200 rounded w-full"></div>
+            </div>
+          ))}
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-md overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Название
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Регион
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Код
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Районов
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Действия
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {filteredMRUs.map((mru) => (
-                  <tr key={mru.id} className="hover:bg-gray-50 transition">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                          <Building2 className="text-blue-600" size={20} />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-800">{mru.name}</p>
-                          <p className="text-xs text-gray-500">ID: {mru.id.substring(0, 8)}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {mru.region}
-                    </td>
-                    <td className="px-6 py-4">
-                      {mru.code ? (
-                        <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-mono">
-                          {mru.code}
-                        </span>
-                      ) : (
-                        <span className="text-gray-400 text-xs">Не указан</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {mru.districts?.length || 0}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => handleShowStats(mru)}
-                          className="text-green-600 hover:text-green-800 transition"
-                          title="Статистика"
-                        >
-                          <BarChart size={18} />
-                        </button>
-                        <button
-                          onClick={() => openEditModal(mru)}
-                          className="text-blue-600 hover:text-blue-800 transition"
-                          title="Редактировать"
-                        >
-                          <Edit size={18} />
-                        </button>
-                        <button
-                          onClick={() => setDeleteModal({ open: true, mru })}
-                          className="text-red-600 hover:text-red-800 transition"
-                          title="Удалить"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredMRUs.map((mru, index) => (
+            <motion.div
+              key={mru.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+              whileHover={{ y: -5, scale: 1.02 }}
+              className="bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition-all border border-gray-100"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+                    <Building2 className="text-white" size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-800">{mru.name}</h3>
+                    <p className="text-sm text-gray-500">{mru.region}</p>
+                  </div>
+                </div>
+              </div>
 
-          {filteredMRUs.length === 0 && (
-            <div className="text-center py-12 text-gray-500">
-              МРУ не найдены
-            </div>
-          )}
+              {mru.code && (
+                <div className="mb-4 inline-block px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-mono">
+                  {mru.code}
+                </div>
+              )}
+
+              <div className="text-sm text-gray-600 mb-4">
+                <p>Районов: <span className="font-semibold text-gray-800">{mru.districts?.length || 0}</span></p>
+              </div>
+
+              <div className="flex space-x-2 pt-4 border-t border-gray-100">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handleShowStats(mru)}
+                  className="flex-1 flex items-center justify-center space-x-1 text-green-600 hover:bg-green-50 py-2 rounded-lg transition"
+                  title="Статистика"
+                >
+                  <BarChart size={16} />
+                  <span className="text-sm">Статистика</span>
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => openEditModal(mru)}
+                  className="flex-1 flex items-center justify-center space-x-1 text-blue-600 hover:bg-blue-50 py-2 rounded-lg transition"
+                  title="Редактировать"
+                >
+                  <Edit size={16} />
+                  <span className="text-sm">Изменить</span>
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setDeleteModal({ open: true, mru })}
+                  className="flex items-center justify-center text-red-600 hover:bg-red-50 p-2 rounded-lg transition"
+                  title="Удалить"
+                >
+                  <Trash2 size={16} />
+                </motion.button>
+              </div>
+            </motion.div>
+          ))}
         </div>
+      )}
+
+      {!loading && filteredMRUs.length === 0 && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center py-16"
+        >
+          <Building2 className="mx-auto text-gray-300 mb-4" size={64} />
+          <h3 className="text-xl font-semibold text-gray-600 mb-2">МРУ не найдены</h3>
+          <p className="text-gray-500 mb-6">Попробуйте изменить критерии поиска</p>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowCreateModal(true)}
+            className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-6 py-3 rounded-lg hover:shadow-lg transition"
+          >
+            Добавить первое МРУ
+          </motion.button>
+        </motion.div>
       )}
 
       {/* Create МРУ Modal */}
@@ -283,12 +309,14 @@ const MRUManagement = () => {
           </div>
 
           <div className="flex space-x-3 pt-4">
-            <button
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               type="submit"
-              className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+              className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition"
             >
               Создать
-            </button>
+            </motion.button>
             <button
               type="button"
               onClick={() => setShowCreateModal(false)}
@@ -350,12 +378,14 @@ const MRUManagement = () => {
           </div>
 
           <div className="flex space-x-3 pt-4">
-            <button
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               type="submit"
-              className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+              className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition"
             >
               Сохранить
-            </button>
+            </motion.button>
             <button
               type="button"
               onClick={() => {
@@ -384,22 +414,23 @@ const MRUManagement = () => {
         {stats && (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <p className="text-sm text-gray-600">Районов</p>
-                <p className="text-2xl font-bold text-blue-600">{stats.districtsCount}</p>
-              </div>
-              <div className="bg-green-50 p-4 rounded-lg">
-                <p className="text-sm text-gray-600">Офицеров</p>
-                <p className="text-2xl font-bold text-green-600">{stats.officersCount}</p>
-              </div>
-              <div className="bg-purple-50 p-4 rounded-lg">
-                <p className="text-sm text-gray-600">Клиентов</p>
-                <p className="text-2xl font-bold text-purple-600">{stats.clientsCount}</p>
-              </div>
-              <div className="bg-orange-50 p-4 rounded-lg">
-                <p className="text-sm text-gray-600">Активных клиентов</p>
-                <p className="text-2xl font-bold text-orange-600">{stats.activeClientsCount}</p>
-              </div>
+              {[
+                { label: 'Районов', value: stats.districtsCount, color: 'blue' },
+                { label: 'Офицеров', value: stats.officersCount, color: 'green' },
+                { label: 'Клиентов', value: stats.clientsCount, color: 'purple' },
+                { label: 'Активных клиентов', value: stats.activeClientsCount, color: 'orange' }
+              ].map((stat, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: i * 0.1 }}
+                  className={`bg-${stat.color}-50 p-4 rounded-lg border border-${stat.color}-200`}
+                >
+                  <p className={`text-sm text-${stat.color}-600`}>{stat.label}</p>
+                  <p className={`text-2xl font-bold text-${stat.color}-600`}>{stat.value}</p>
+                </motion.div>
+              ))}
             </div>
 
             <button
@@ -423,19 +454,23 @@ const MRUManagement = () => {
         title="Подтверждение удаления"
       >
         <div className="space-y-4">
-          <p className="text-gray-700">
-            Вы действительно хотите удалить МРУ <strong>{deleteModal.mru?.name}</strong>?
-          </p>
-          <p className="text-sm text-red-600">
-            Это действие необратимо. Убедитесь, что в МРУ нет активных районов и офицеров.
-          </p>
-          <div className="flex space-x-3 pt-4">
-            <button
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-gray-700">
+              Вы действительно хотите удалить МРУ <strong>{deleteModal.mru?.name}</strong>?
+            </p>
+            <p className="text-sm text-red-600 mt-2">
+              Это действие необратимо. Убедитесь, что в МРУ нет активных районов и офицеров.
+            </p>
+          </div>
+          <div className="flex space-x-3">
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               onClick={handleDeleteMRU}
-              className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
+              className="flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white px-4 py-2 rounded-lg hover:shadow-lg transition"
             >
               Удалить
-            </button>
+            </motion.button>
             <button
               onClick={() => setDeleteModal({ open: false, mru: null })}
               className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition"
