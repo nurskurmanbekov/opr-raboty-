@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { UserPlus, Edit, Trash2, Shield, Check, X, Search } from 'lucide-react';
+import { UserPlus, Edit, Trash2, Check, X, Search } from 'lucide-react';
 import Layout from '../components/Layout';
 import { usersAPI } from '../api/api';
 import Modal from '../components/Modal';
