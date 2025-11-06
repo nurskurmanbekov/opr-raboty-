@@ -180,6 +180,10 @@ exports.getWorkSession = async (req, res, next) => {
 // @access  Private (Client only)
 exports.uploadPhoto = async (req, res, next) => {
   try {
+    console.log('📸 Upload photo request received');
+    console.log('File:', req.file);
+    console.log('Body:', req.body);
+
     if (!req.file) {
       return res.status(400).json({
         success: false,
@@ -198,14 +202,19 @@ exports.uploadPhoto = async (req, res, next) => {
       });
     }
 
+    console.log('✅ Saving photo to database...');
+    console.log('File path:', req.file.path);
+
     const photo = await Photo.create({
       workSessionId: session.id,
-      photoType,
+      photoType: photoType || 'process',
       filePath: req.file.path,
-      latitude,
-      longitude,
+      latitude: latitude ? parseFloat(latitude) : null,
+      longitude: longitude ? parseFloat(longitude) : null,
       timestamp: new Date()
     });
+
+    console.log('✅ Photo saved successfully:', photo.id);
 
     res.status(201).json({
       success: true,
@@ -213,6 +222,7 @@ exports.uploadPhoto = async (req, res, next) => {
       data: photo
     });
   } catch (error) {
+    console.error('❌ Error uploading photo:', error);
     next(error);
   }
 };
