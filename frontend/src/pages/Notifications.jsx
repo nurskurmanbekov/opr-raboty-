@@ -83,9 +83,10 @@ const Notifications = () => {
   const fetchUnreadCount = async () => {
     try {
       const response = await notificationsAPI.getUnreadCount();
-      setUnreadCount(response.data?.count || 0);
+      setUnreadCount(response.data?.count || response.count || 0);
     } catch (error) {
       console.error('Error fetching unread count:', error);
+      setUnreadCount(0); // При ошибке - 0
     }
   };
 
@@ -171,7 +172,7 @@ const Notifications = () => {
               : 'text-gray-600 hover:text-gray-800'
           }`}
         >
-          Все ({notifications.length})
+          Все ({notificationsArray.length})
         </button>
         <button
           onClick={() => setFilter('unread')}
@@ -191,7 +192,7 @@ const Notifications = () => {
               : 'text-gray-600 hover:text-gray-800'
           }`}
         >
-          Прочитанные ({notifications.length - unreadCount})
+          Прочитанные ({notificationsArray.length - unreadCount})
         </button>
       </div>
 
