@@ -50,16 +50,31 @@ const Notifications = () => {
       setLoading(true);
       const response = await notificationsAPI.getNotifications();
 
-      // Ensure we always set an array
-      const notificationsData = response?.data || response || [];
-      const notificationsArray = Array.isArray(notificationsData)
-        ? notificationsData
-        : [];
+      // Backend returns: {success: true, data: {notifications: [...], pagination: {...}}}
+      // Check multiple possible response structures
+      let notificationsArray = [];
+
+      if (response?.data?.notifications && Array.isArray(response.data.notifications)) {
+        // Standard backend format
+        notificationsArray = response.data.notifications;
+      } else if (response?.notifications && Array.isArray(response.notifications)) {
+        // Alternative format
+        notificationsArray = response.notifications;
+      } else if (Array.isArray(response?.data)) {
+        // Direct array in data
+        notificationsArray = response.data;
+      } else if (Array.isArray(response)) {
+        // Direct array response
+        notificationsArray = response;
+      } else {
+        console.warn('Unexpected response format:', response);
+        notificationsArray = [];
+      }
 
       setNotifications(notificationsArray);
     } catch (error) {
       console.error('Error fetching notifications:', error);
-      setNotifications([]); // Set empty array on error
+      setNotifications([]); // Always set empty array on error
     } finally {
       setLoading(false);
     }

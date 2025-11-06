@@ -219,6 +219,22 @@ exports.deleteClient = async (req, res, next) => {
       });
     }
 
+    // Check if client has active work sessions
+    const activeSessionsCount = await WorkSession.count({
+      where: {
+        clientId: req.params.id,
+        status: 'in_progress'
+      }
+    });
+
+    if (activeSessionsCount > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot delete client with ${activeSessionsCount} active work sessions. Please complete or cancel them first.`
+      });
+    }
+
+    // Delete client (cascading deletes will handle related records)
     await client.destroy();
 
     res.json({

@@ -3,16 +3,20 @@ import { MapPin, Plus, Edit, Trash2, AlertTriangle, Search } from 'lucide-react'
 import Layout from '../components/Layout';
 import { geofencesAPI } from '../api/api';
 import Modal from '../components/Modal';
+import { useAuth } from '../context/AuthContext';
 
 const DISTRICTS = ['Bishkek', 'Osh', 'Jalal-Abad', 'Karakol', 'Batken', 'Talas', 'Naryn'];
 
 const Geofences = () => {
+  const { user: currentUser } = useAuth();
   const [geofences, setGeofences] = useState([]);
   const [violations, setViolations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('geofences'); // 'geofences' or 'violations'
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editModal, setEditModal] = useState({ open: false, geofence: null });
+  const [deleteModal, setDeleteModal] = useState({ open: false, geofence: null });
   const [formData, setFormData] = useState({
     name: '',
     latitude: '',
@@ -75,15 +79,44 @@ const Geofences = () => {
     }
   };
 
-  const handleDeleteGeofence = async (id) => {
-    if (!confirm('Удалить эту геозону?')) return;
-
+  const handleUpdateGeofence = async (e) => {
+    e.preventDefault();
     try {
-      await geofencesAPI.deleteGeofence(id);
+      await geofencesAPI.updateGeofence(editModal.geofence.id, {
+        ...formData,
+        latitude: parseFloat(formData.latitude),
+        longitude: parseFloat(formData.longitude),
+        radius: parseInt(formData.radius)
+      });
+      setEditModal({ open: false, geofence: null });
+      setFormData({
+        name: '',
+        latitude: '',
+        longitude: '',
+        radius: 200,
+        workLocation: '',
+        district: 'Bishkek',
+        isActive: true
+      });
       fetchGeofences();
+      alert('Геозона успешно обновлена');
+    } catch (error) {
+      console.error('Error updating geofence:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Ошибка при обновлении геозоны';
+      alert(errorMessage);
+    }
+  };
+
+  const handleDeleteGeofence = async () => {
+    try {
+      await geofencesAPI.deleteGeofence(deleteModal.geofence.id);
+      setDeleteModal({ open: false, geofence: null });
+      fetchGeofences();
+      alert('Геозона успешно удалена');
     } catch (error) {
       console.error('Error deleting geofence:', error);
-      alert('Ошибка при удалении геозоны');
+      const errorMessage = error.response?.data?.message || error.message || 'Ошибка при удалении геозоны';
+      alert(errorMessage);
     }
   };
 
@@ -100,13 +133,15 @@ const Geofences = () => {
           <h1 className="text-3xl font-bold text-gray-800">Управление геозонами</h1>
           <p className="text-gray-600 mt-2">Настройка рабочих зон и мониторинг нарушений</p>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center space-x-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition shadow-md"
-        >
-          <Plus size={20} />
-          <span>Добавить геозону</span>
-        </button>
+        {(currentUser?.role === 'superadmin' || currentUser?.role === 'regional_admin' || currentUser?.role === 'district_admin') && (
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center space-x-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition shadow-md"
+          >
+            <Plus size={20} />
+            <span>Добавить геозону</span>
+          </button>
+        )}
       </div>
 
       {/* Tabs */}
@@ -171,12 +206,37 @@ const Geofences = () => {
                         <p className="text-sm text-gray-500">{geofence.district}</p>
                       </div>
                     </div>
-                    <button
-                      onClick={() => handleDeleteGeofence(geofence.id)}
-                      className="text-red-500 hover:text-red-700 transition"
-                    >
-                      <Trash2 size={18} />
-                    </button>
+                    <div className="flex items-center space-x-2">
+                      {(currentUser?.role === 'superadmin' || currentUser?.role === 'regional_admin' || currentUser?.role === 'district_admin') && (
+                        <button
+                          onClick={() => {
+                            setFormData({
+                              name: geofence.name,
+                              latitude: geofence.latitude,
+                              longitude: geofence.longitude,
+                              radius: geofence.radius,
+                              workLocation: geofence.workLocation,
+                              district: geofence.district,
+                              isActive: geofence.isActive
+                            });
+                            setEditModal({ open: true, geofence });
+                          }}
+                          className="text-blue-600 hover:text-blue-800 transition p-2 hover:bg-blue-50 rounded-lg"
+                          title="Редактировать геозону"
+                        >
+                          <Edit size={18} />
+                        </button>
+                      )}
+                      {currentUser?.role === 'superadmin' && (
+                        <button
+                          onClick={() => setDeleteModal({ open: true, geofence })}
+                          className="text-red-600 hover:text-red-800 transition p-2 hover:bg-red-50 rounded-lg"
+                          title="Удалить геозону"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="space-y-2 text-sm text-gray-600">
@@ -287,7 +347,18 @@ const Geofences = () => {
       {/* Create Geofence Modal */}
       <Modal
         isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        onClose={() => {
+          setShowCreateModal(false);
+          setFormData({
+            name: '',
+            latitude: '',
+            longitude: '',
+            radius: 200,
+            workLocation: '',
+            district: 'Bishkek',
+            isActive: true
+          });
+        }}
         title="Добавить геозону"
       >
         <form onSubmit={handleCreateGeofence} className="space-y-4">
@@ -410,6 +481,186 @@ const Geofences = () => {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Edit Geofence Modal */}
+      <Modal
+        isOpen={editModal.open}
+        onClose={() => {
+          setEditModal({ open: false, geofence: null });
+          setFormData({
+            name: '',
+            latitude: '',
+            longitude: '',
+            radius: 200,
+            workLocation: '',
+            district: 'Bishkek',
+            isActive: true
+          });
+        }}
+        title="Редактировать геозону"
+      >
+        <form onSubmit={handleUpdateGeofence} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Название
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Например: Парк Победы"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Адрес места работы
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.workLocation}
+              onChange={(e) => setFormData({ ...formData, workLocation: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Полный адрес"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Широта
+              </label>
+              <input
+                type="number"
+                step="any"
+                required
+                value={formData.latitude}
+                onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="42.8746"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Долгота
+              </label>
+              <input
+                type="number"
+                step="any"
+                required
+                value={formData.longitude}
+                onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="74.5698"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Радиус (метры)
+            </label>
+            <input
+              type="number"
+              required
+              value={formData.radius}
+              onChange={(e) => setFormData({ ...formData, radius: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Район
+            </label>
+            <select
+              value={formData.district}
+              onChange={(e) => setFormData({ ...formData, district: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {DISTRICTS.map((district) => (
+                <option key={district} value={district}>
+                  {district}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="editIsActive"
+              checked={formData.isActive}
+              onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+              className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+            />
+            <label htmlFor="editIsActive" className="text-sm font-medium text-gray-700">
+              Активная геозона
+            </label>
+          </div>
+
+          <div className="flex space-x-3 pt-4">
+            <button
+              type="submit"
+              className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+            >
+              Обновить
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setEditModal({ open: false, geofence: null });
+                setFormData({
+                  name: '',
+                  latitude: '',
+                  longitude: '',
+                  radius: 200,
+                  workLocation: '',
+                  district: 'Bishkek',
+                  isActive: true
+                });
+              }}
+              className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition"
+            >
+              Отмена
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Delete Geofence Confirmation Modal */}
+      <Modal
+        isOpen={deleteModal.open}
+        onClose={() => setDeleteModal({ open: false, geofence: null })}
+        title="Подтверждение удаления"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-700">
+            Вы действительно хотите удалить геозону <strong>{deleteModal.geofence?.name}</strong>?
+          </p>
+          <p className="text-sm text-red-600">
+            Это действие необратимо. Геозона будет удалена из системы.
+          </p>
+          <div className="flex space-x-3 pt-4">
+            <button
+              onClick={handleDeleteGeofence}
+              className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
+            >
+              Удалить
+            </button>
+            <button
+              onClick={() => setDeleteModal({ open: false, geofence: null })}
+              className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition"
+            >
+              Отмена
+            </button>
+          </div>
+        </div>
       </Modal>
     </Layout>
   );

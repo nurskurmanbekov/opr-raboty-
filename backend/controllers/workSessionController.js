@@ -1,4 +1,4 @@
-const { WorkSession, Client, Photo, User } = require('../models');
+const { WorkSession, Client, Photo, User, LocationHistory } = require('../models');
 const { Op } = require('sequelize');
 
 // @desc    Start work session
@@ -213,6 +213,55 @@ exports.uploadPhoto = async (req, res, next) => {
       data: photo
     });
   } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Update location for work session
+// @route   POST /api/work-sessions/:id/location
+// @access  Private (Client only)
+exports.updateLocation = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { latitude, longitude, accuracy, speed, altitude, heading } = req.body;
+
+    // Find work session
+    const workSession = await WorkSession.findByPk(id);
+
+    if (!workSession) {
+      return res.status(404).json({
+        success: false,
+        message: 'Work session not found'
+      });
+    }
+
+    // Check that session is active
+    if (workSession.status !== 'in_progress') {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot update location for inactive session'
+      });
+    }
+
+    // Save to LocationHistory
+    await LocationHistory.create({
+      workSessionId: id,
+      clientId: workSession.clientId,
+      latitude,
+      longitude,
+      accuracy,
+      speed,
+      altitude,
+      heading,
+      timestamp: new Date()
+    });
+
+    res.json({
+      success: true,
+      message: 'Location updated successfully'
+    });
+  } catch (error) {
+    console.error('Error updating location:', error);
     next(error);
   }
 };
