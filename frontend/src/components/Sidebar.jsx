@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import {
   Home, Users, Activity, BarChart3, Settings, LogOut,
-  MapPin, Bell, UserCog, Building2, Map, CheckSquare
+  MapPin, Bell, UserCog, Building2, Map, CheckSquare, TrendingUp
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -14,6 +14,7 @@ const Sidebar = () => {
     { path: '/clients', icon: Users, label: 'Клиенты', roles: ['all'] },
     { path: '/sessions', icon: Activity, label: 'Рабочие сессии', roles: ['all'] },
     { path: '/analytics', icon: BarChart3, label: 'Аналитика', roles: ['all'] },
+    { path: '/statistics', icon: TrendingUp, label: 'Статистика', roles: ['superadmin', 'central_admin', 'auditor'] },
     { path: '/approvals', icon: CheckSquare, label: 'Заявки', roles: ['superadmin', 'central_admin'] },
     { path: '/mru', icon: Building2, label: 'МРУ', roles: ['superadmin', 'central_admin'] },
     { path: '/districts', icon: Map, label: 'Районы', roles: ['superadmin', 'central_admin'] },

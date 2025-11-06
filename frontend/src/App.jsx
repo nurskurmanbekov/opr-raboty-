@@ -14,6 +14,7 @@ import Profile from './pages/Profile';
 import MRUManagement from './pages/MRUManagement';
 import DistrictManagement from './pages/DistrictManagement';
 import Approvals from './pages/Approvals';
+import StatisticsDashboard from './pages/StatisticsDashboard';
 
 // Protected Route wrapper
 const ProtectedRoute = ({ children }) => {
@@ -140,6 +141,14 @@ function AppContent() {
         element={
           <ProtectedRoute>
             <Approvals />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/statistics"
+        element={
+          <ProtectedRoute>
+            <StatisticsDashboard />
           </ProtectedRoute>
         }
       />
