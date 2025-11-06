@@ -8,6 +8,7 @@ import {
   RefreshControl,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { notificationsAPI } from '../api/api';
 
 const NOTIFICATION_ICONS = {
@@ -111,7 +112,7 @@ const NotificationsScreen = ({ navigation }) => {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Уведомления</Text>
@@ -149,14 +150,14 @@ const NotificationsScreen = ({ navigation }) => {
         }
         contentContainerStyle={notifications.length === 0 && styles.emptyList}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: '#3b82f6',
   },
   header: {
     backgroundColor: '#3b82f6',

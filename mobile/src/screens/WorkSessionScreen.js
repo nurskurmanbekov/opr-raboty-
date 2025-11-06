@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   Image,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import * as ImagePicker from 'expo-image-picker';
@@ -432,13 +433,14 @@ const WorkSessionScreen = ({ navigation }) => {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Network Status Banner */}
-      {!isOnline && (
-        <View style={styles.offlineBanner}>
-          <Text style={styles.offlineText}>📡 Оффлайн режим - данные будут синхронизированы позже</Text>
-        </View>
-      )}
+    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+      <ScrollView style={styles.container}>
+        {/* Network Status Banner */}
+        {!isOnline && (
+          <View style={styles.offlineBanner}>
+            <Text style={styles.offlineText}>📡 Оффлайн режим - данные будут синхронизированы позже</Text>
+          </View>
+        )}
 
       {/* Location Card */}
       <View style={styles.card}>
@@ -548,14 +550,18 @@ const WorkSessionScreen = ({ navigation }) => {
           • Автоматическая синхронизация при подключении
         </Text>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: '#f3f4f6',
+  },
+  container: {
+    flex: 1,
   },
   offlineBanner: {
     backgroundColor: '#fbbf24',
