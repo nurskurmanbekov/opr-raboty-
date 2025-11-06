@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Calendar, MapPin, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { Calendar, MapPin, Clock, CheckCircle, XCircle, Map } from 'lucide-react';
 import api from '../api/axios';
 import Layout from '../components/Layout';
+import WorkSessionMap from '../components/WorkSessionMap';
 
 const WorkSessions = () => {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [selectedSessionId, setSelectedSessionId] = useState(null);
 
   useEffect(() => {
     fetchSessions();
@@ -146,24 +148,35 @@ const WorkSessions = () => {
                   </div>
                 </div>
 
-                {session.status === 'completed' && (
-                  <div className="flex space-x-2 ml-4">
-                    <button
-                      onClick={() => handleVerify(session.id, 'verified')}
-                      className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-green-700 transition"
-                    >
-                      <CheckCircle size={18} />
-                      <span>Подтвердить</span>
-                    </button>
-                    <button
-                      onClick={() => handleVerify(session.id, 'rejected')}
-                      className="bg-red-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-red-700 transition"
-                    >
-                      <XCircle size={18} />
-                      <span>Отклонить</span>
-                    </button>
-                  </div>
-                )}
+                <div className="flex space-x-2 ml-4">
+                  {/* View on Map button - available for all sessions */}
+                  <button
+                    onClick={() => setSelectedSessionId(session.id)}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-blue-700 transition"
+                  >
+                    <Map size={18} />
+                    <span>На карте</span>
+                  </button>
+
+                  {session.status === 'completed' && (
+                    <>
+                      <button
+                        onClick={() => handleVerify(session.id, 'verified')}
+                        className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-green-700 transition"
+                      >
+                        <CheckCircle size={18} />
+                        <span>Подтвердить</span>
+                      </button>
+                      <button
+                        onClick={() => handleVerify(session.id, 'rejected')}
+                        className="bg-red-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-red-700 transition"
+                      >
+                        <XCircle size={18} />
+                        <span>Отклонить</span>
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           ))}
@@ -174,6 +187,14 @@ const WorkSessions = () => {
             </div>
           )}
         </div>
+      )}
+
+      {/* Map Modal */}
+      {selectedSessionId && (
+        <WorkSessionMap
+          sessionId={selectedSessionId}
+          onClose={() => setSelectedSessionId(null)}
+        />
       )}
     </Layout>
   );

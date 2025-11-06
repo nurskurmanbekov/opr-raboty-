@@ -315,3 +315,174 @@ exports.verifyWorkSession = async (req, res, next) => {
     next(error);
   }
 };
+
+// @desc    Get work session GPS route with photos and geofence data
+// @route   GET /api/work-sessions/:id/route
+// @access  Private
+exports.getWorkSessionRoute = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // Get session with all related data
+    const session = await WorkSession.findByPk(id, {
+      include: [
+        {
+          model: Client,
+          as: 'client',
+          attributes: ['id', 'fullName', 'idNumber', 'district', 'workLocation']
+        },
+        {
+          model: Photo,
+          as: 'photos',
+          attributes: ['id', 'photoType', 'filePath', 'latitude', 'longitude', 'timestamp']
+        },
+        {
+          model: User,
+          as: 'verifier',
+          attributes: ['id', 'fullName', 'email']
+        },
+        {
+          model: LocationHistory,
+          as: 'locationHistory',
+          attributes: ['id', 'latitude', 'longitude', 'accuracy', 'speed', 'altitude', 'heading', 'timestamp'],
+          order: [['timestamp', 'ASC']]
+        }
+      ]
+    });
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        message: 'Work session not found'
+      });
+    }
+
+    // Find matching geofence by workLocation
+    const Geofence = require('../models').Geofence;
+    const GeofenceViolation = require('../models').GeofenceViolation;
+
+    let geofence = null;
+    if (session.workLocation) {
+      geofence = await Geofence.findOne({
+        where: {
+          workLocation: session.workLocation,
+          isActive: true
+        }
+      });
+    }
+
+    // Get violations for this session
+    const violations = await GeofenceViolation.findAll({
+      where: {
+        workSessionId: id
+      },
+      include: [{
+        model: Geofence,
+        as: 'geofence',
+        attributes: ['id', 'name', 'latitude', 'longitude', 'radius']
+      }],
+      order: [['violationTime', 'ASC']]
+    });
+
+    // Calculate statistics
+    let timeInGeofence = 0;
+    let timeOutGeofence = 0;
+    let totalDistance = 0;
+
+    if (geofence && session.locationHistory && session.locationHistory.length > 0) {
+      const locationPoints = session.locationHistory;
+
+      // Calculate time in/out of geofence
+      for (let i = 0; i < locationPoints.length - 1; i++) {
+        const point = locationPoints[i];
+        const nextPoint = locationPoints[i + 1];
+
+        // Calculate distance from geofence center
+        const distance = calculateDistance(
+          point.latitude,
+          point.longitude,
+          geofence.latitude,
+          geofence.longitude
+        );
+
+        // Calculate time between points (in minutes)
+        const timeDiff = (new Date(nextPoint.timestamp) - new Date(point.timestamp)) / (1000 * 60);
+
+        if (distance <= geofence.radius) {
+          timeInGeofence += timeDiff;
+        } else {
+          timeOutGeofence += timeDiff;
+        }
+
+        // Calculate distance traveled
+        if (i < locationPoints.length - 1) {
+          totalDistance += calculateDistance(
+            point.latitude,
+            point.longitude,
+            nextPoint.latitude,
+            nextPoint.longitude
+          );
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      data: {
+        session: {
+          id: session.id,
+          startTime: session.startTime,
+          endTime: session.endTime,
+          hoursWorked: session.hoursWorked,
+          status: session.status,
+          workLocation: session.workLocation,
+          startLatitude: session.startLatitude,
+          startLongitude: session.startLongitude,
+          endLatitude: session.endLatitude,
+          endLongitude: session.endLongitude,
+          client: session.client,
+          verifier: session.verifier
+        },
+        route: session.locationHistory || [],
+        photos: session.photos || [],
+        geofence: geofence ? {
+          id: geofence.id,
+          name: geofence.name,
+          latitude: geofence.latitude,
+          longitude: geofence.longitude,
+          radius: geofence.radius,
+          workLocation: geofence.workLocation
+        } : null,
+        violations: violations || [],
+        statistics: {
+          timeInGeofence: Math.round(timeInGeofence),
+          timeOutGeofence: Math.round(timeOutGeofence),
+          totalDistance: Math.round(totalDistance),
+          violationsCount: violations.length,
+          photosCount: session.photos ? session.photos.length : 0,
+          gpsPointsCount: session.locationHistory ? session.locationHistory.length : 0
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching work session route:', error);
+    next(error);
+  }
+};
+
+// Helper function to calculate distance between two coordinates (Haversine formula)
+// Returns distance in meters
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371e3; // Earth radius in meters
+  const φ1 = lat1 * Math.PI / 180;
+  const φ2 = lat2 * Math.PI / 180;
+  const Δφ = (lat2 - lat1) * Math.PI / 180;
+  const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) *
+    Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c;
+}
