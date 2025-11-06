@@ -1,17 +1,22 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, User, Clock } from 'lucide-react';
+import { Plus, Search, User, Clock, Edit, Trash2 } from 'lucide-react';
 import api from '../api/axios';
+import { clientsAPI } from '../api/api';
 import Layout from '../components/Layout';
 import Modal from '../components/Modal';
 import AddClientForm from '../components/AddClientForm';
-import { useNavigate } from 'react-router-dom'; 
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext'; 
 const Clients = () => {
+  const { user: currentUser } = useAuth();
   const [clients, setClients] = useState([]);
   const [officers, setOfficers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editModal, setEditModal] = useState({ open: false, client: null });
+  const [deleteModal, setDeleteModal] = useState({ open: false, client: null });
   const navigate = useNavigate();
 
 
@@ -31,6 +36,19 @@ const Clients = () => {
     } catch (error) {
       console.error('Error fetching data:', error);
       setLoading(false);
+    }
+  };
+
+  const handleDeleteClient = async () => {
+    try {
+      await clientsAPI.deleteClient(deleteModal.client.id);
+      setDeleteModal({ open: false, client: null });
+      fetchData();
+      alert('Клиент успешно удален');
+    } catch (error) {
+      console.error('Error deleting client:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Ошибка при удалении клиента';
+      alert(errorMessage);
     }
   };
 
@@ -120,18 +138,21 @@ const Clients = () => {
         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Прогресс</th>
         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Статус</th>
         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Куратор</th>
+        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
       </tr>
     </thead>
     <tbody className="divide-y divide-gray-200">
       {filteredClients.map((client) => {
         const progress = (client.completedHours / client.assignedHours * 100).toFixed(1);
         return (
-          <tr 
-            key={client.id} 
-            onClick={() => navigate(`/clients/${client.id}`)}
-            className="hover:bg-gray-50 cursor-pointer"
+          <tr
+            key={client.id}
+            className="hover:bg-gray-50"
           >
-            <td className="px-6 py-4">
+            <td
+              className="px-6 py-4 cursor-pointer"
+              onClick={() => navigate(`/clients/${client.id}`)}
+            >
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
                   <User size={20} className="text-blue-600" />
@@ -142,24 +163,75 @@ const Clients = () => {
                 </div>
               </div>
             </td>
-            <td className="px-6 py-4 text-sm text-gray-900">{client.idNumber}</td>
-            <td className="px-6 py-4 text-sm text-gray-900">{client.district}</td>
-            <td className="px-6 py-4">
+            <td
+              className="px-6 py-4 text-sm text-gray-900 cursor-pointer"
+              onClick={() => navigate(`/clients/${client.id}`)}
+            >
+              {client.idNumber}
+            </td>
+            <td
+              className="px-6 py-4 text-sm text-gray-900 cursor-pointer"
+              onClick={() => navigate(`/clients/${client.id}`)}
+            >
+              {client.district}
+            </td>
+            <td
+              className="px-6 py-4 cursor-pointer"
+              onClick={() => navigate(`/clients/${client.id}`)}
+            >
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-sm text-gray-600">{client.completedHours} / {client.assignedHours} ч</span>
                   <span className="text-sm font-medium text-gray-900">{progress}%</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
+                  <div
                     className="bg-blue-600 h-2 rounded-full transition-all"
                     style={{ width: `${progress}%` }}
                   />
                 </div>
               </div>
             </td>
-            <td className="px-6 py-4">{getStatusBadge(client.status)}</td>
-            <td className="px-6 py-4 text-sm text-gray-900">{client.officer?.fullName}</td>
+            <td
+              className="px-6 py-4 cursor-pointer"
+              onClick={() => navigate(`/clients/${client.id}`)}
+            >
+              {getStatusBadge(client.status)}
+            </td>
+            <td
+              className="px-6 py-4 text-sm text-gray-900 cursor-pointer"
+              onClick={() => navigate(`/clients/${client.id}`)}
+            >
+              {client.officer?.fullName}
+            </td>
+            <td className="px-6 py-4">
+              <div className="flex items-center space-x-2">
+                {(currentUser?.role === 'superadmin' || currentUser?.role === 'district_admin') && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditModal({ open: true, client });
+                    }}
+                    className="text-blue-600 hover:text-blue-800 transition p-2 hover:bg-blue-50 rounded-lg"
+                    title="Редактировать клиента"
+                  >
+                    <Edit size={18} />
+                  </button>
+                )}
+                {currentUser?.role === 'superadmin' && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeleteModal({ open: true, client });
+                    }}
+                    className="text-red-600 hover:text-red-800 transition p-2 hover:bg-red-50 rounded-lg"
+                    title="Удалить клиента"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                )}
+              </div>
+            </td>
           </tr>
         );
       })}
@@ -174,17 +246,62 @@ const Clients = () => {
 </div>
       )}
 
-      {/* Modal */}
-      <Modal 
-        isOpen={isModalOpen} 
+      {/* Add Client Modal */}
+      <Modal
+        isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title="Добавить нового клиента"
       >
-        <AddClientForm 
+        <AddClientForm
           onClose={() => setIsModalOpen(false)}
           onSuccess={fetchData}
           officers={officers}
         />
+      </Modal>
+
+      {/* Edit Client Modal */}
+      <Modal
+        isOpen={editModal.open}
+        onClose={() => setEditModal({ open: false, client: null })}
+        title="Редактировать клиента"
+      >
+        <AddClientForm
+          onClose={() => setEditModal({ open: false, client: null })}
+          onSuccess={fetchData}
+          officers={officers}
+          initialData={editModal.client}
+          isEdit={true}
+        />
+      </Modal>
+
+      {/* Delete Client Confirmation Modal */}
+      <Modal
+        isOpen={deleteModal.open}
+        onClose={() => setDeleteModal({ open: false, client: null })}
+        title="Подтверждение удаления"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-700">
+            Вы действительно хотите удалить клиента <strong>{deleteModal.client?.fullName}</strong>?
+          </p>
+          <p className="text-sm text-red-600">
+            Это действие необратимо. Все данные клиента будут удалены из системы.
+          </p>
+          <div className="flex space-x-3 pt-4">
+            <button
+              onClick={handleDeleteClient}
+              className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
+            >
+              Удалить
+            </button>
+            <button
+              onClick={() => setDeleteModal({ open: false, client: null })}
+              className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition"
+            >
+              Отмена
+            </button>
+          </div>
+        </div>
       </Modal>
     </Layout>
   );

@@ -6,6 +6,7 @@ const {
   getWorkSessions,
   getWorkSession,
   uploadPhoto,
+  updateLocation,
   verifyWorkSession
 } = require('../controllers/workSessionController');
 const { protect, authorize } = require('../middleware/auth');
@@ -15,6 +16,7 @@ router.use(protect); // All routes need authentication
 
 router.post('/start', startWorkSession);
 router.put('/:id/end', endWorkSession);
+router.post('/:id/location', updateLocation);
 router.get('/', getWorkSessions);
 router.get('/:id', getWorkSession);
 router.post('/:id/photos', upload.single('photo'), uploadPhoto);
