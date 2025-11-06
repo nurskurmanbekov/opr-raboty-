@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Mail, Phone, MapPin, Calendar, Clock, Activity } from 'lucide-react';
+import { ArrowLeft, User, Mail, Phone, MapPin, Calendar, Clock, Activity, Map, Camera } from 'lucide-react';
 import api from '../api/axios';
 import Layout from '../components/Layout';
+import WorkSessionMap from '../components/WorkSessionMap';
+import PhotoGallery from '../components/PhotoGallery';
 
 const ClientDetail = () => {
   const { id } = useParams();
@@ -10,6 +12,8 @@ const ClientDetail = () => {
   const [client, setClient] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedSessionForMap, setSelectedSessionForMap] = useState(null);
+  const [selectedSessionForPhotos, setSelectedSessionForPhotos] = useState(null);
 
   useEffect(() => {
     fetchClientData();
@@ -250,6 +254,24 @@ const ClientDetail = () => {
                         <p className="text-sm text-gray-600">{session.verificationNotes}</p>
                       </div>
                     )}
+
+                    {/* Action Buttons */}
+                    <div className="mt-4 flex space-x-2">
+                      <button
+                        onClick={() => setSelectedSessionForMap(session.id)}
+                        className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center justify-center space-x-2 hover:bg-blue-700 transition"
+                      >
+                        <Map size={18} />
+                        <span>Карта</span>
+                      </button>
+                      <button
+                        onClick={() => setSelectedSessionForPhotos(session)}
+                        className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-lg flex items-center justify-center space-x-2 hover:bg-purple-700 transition"
+                      >
+                        <Camera size={18} />
+                        <span>Фото ({session.photos?.length || 0})</span>
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -257,6 +279,26 @@ const ClientDetail = () => {
           </div>
         </div>
       </div>
+
+      {/* Map Modal */}
+      {selectedSessionForMap && (
+        <WorkSessionMap
+          sessionId={selectedSessionForMap}
+          onClose={() => setSelectedSessionForMap(null)}
+        />
+      )}
+
+      {/* Photo Gallery Modal */}
+      {selectedSessionForPhotos && (
+        <PhotoGallery
+          photos={selectedSessionForPhotos.photos || []}
+          onClose={() => setSelectedSessionForPhotos(null)}
+          sessionInfo={{
+            clientName: client.fullName,
+            date: selectedSessionForPhotos.startTime
+          }}
+        />
+      )}
     </Layout>
   );
 };

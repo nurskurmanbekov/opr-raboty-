@@ -4,6 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const compression = require('compression');
+const path = require('path');
 const { connectDB } = require('./config/database');
 const { initializeFirebase } = require('./config/firebase');
 
@@ -36,7 +37,9 @@ app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
 app.use(morgan('dev')); // Logging
 
 // Static files (for uploads)
-app.use('/uploads', express.static('uploads'));
+const uploadsPath = path.join(__dirname, 'uploads');
+app.use('/uploads', express.static(uploadsPath));
+console.log('📁 Serving static files from:', uploadsPath);
 
 // Routes
 app.get('/', (req, res) => {
