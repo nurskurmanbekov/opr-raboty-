@@ -8,6 +8,7 @@ import {
   Alert,
   RefreshControl,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../api/axios';
 import Button from '../components/Button';
@@ -66,22 +67,23 @@ const HomeScreen = ({ navigation }) => {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
+      <SafeAreaView style={styles.loadingContainer}>
         <Text>Загрузка...</Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
   const progress = stats ? (stats.completedHours / stats.assignedHours * 100).toFixed(1) : 0;
 
   return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    >
-      <View style={styles.header}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <ScrollView
+        style={styles.scrollView}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        <View style={styles.header}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>
             {user?.fullName?.charAt(0)}
@@ -132,12 +134,17 @@ const HomeScreen = ({ navigation }) => {
           <Text style={styles.logoutText}>Выйти</Text>
         </TouchableOpacity>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+    backgroundColor: '#3b82f6',
+  },
+  scrollView: {
     flex: 1,
     backgroundColor: '#f3f4f6',
   },
@@ -145,6 +152,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#f3f4f6',
   },
   header: {
     backgroundColor: '#3b82f6',

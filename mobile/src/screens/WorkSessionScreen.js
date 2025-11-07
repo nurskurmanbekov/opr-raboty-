@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   Image,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import * as ImagePicker from 'expo-image-picker';
@@ -16,7 +17,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Camera } from 'expo-camera';
 import NetInfo from '@react-native-community/netinfo';
 import api from '../api/axios';
-import { workSessionsAPI, geofencesAPI, syncAPI } from '../api/api';
+import { workSessionsAPI, geofencesAPI } from '../api/api';
+import offlineQueue from '../services/offlineQueue';
 import Button from '../components/Button';
 
 const LOCATION_TASK_NAME = 'background-location-task';
@@ -53,12 +55,15 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
           });
         } else {
           // Queue for offline sync
-          await syncAPI.addToQueue({
-            operation: 'update_location',
-            data: {
-              workSessionId: session.id,
-              ...location.coords
-            }
+          await offlineQueue.addToQueue('update_location', {
+            workSessionId: session.id,
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+            accuracy: location.coords.accuracy,
+            altitude: location.coords.altitude,
+            speed: location.coords.speed,
+            heading: location.coords.heading,
+            timestamp: Date.now()
           });
         }
       }
@@ -247,10 +252,7 @@ const WorkSessionScreen = ({ navigation }) => {
           offline: true
         };
 
-        await syncAPI.addToQueue({
-          operation: 'create_work_session',
-          data: sessionData
-        });
+        await offlineQueue.addToQueue('create_work_session', sessionData);
       }
 
       await AsyncStorage.setItem('activeSession', JSON.stringify(newSession));
@@ -346,12 +348,9 @@ const WorkSessionScreen = ({ navigation }) => {
         Alert.alert('Успех', 'Фото успешно загружено');
       } else {
         // Queue for offline sync
-        await syncAPI.addToQueue({
-          operation: 'upload_photo',
-          data: {
-            workSessionId: session.id,
-            photoUri: uri
-          }
+        await offlineQueue.addToQueue('upload_photo', {
+          workSessionId: session.id,
+          photoUri: uri
         });
         Alert.alert('Оффлайн', 'Фото будет загружено при подключении к интернету');
       }
@@ -389,12 +388,9 @@ const WorkSessionScreen = ({ navigation }) => {
                 await workSessionsAPI.endWorkSession(session.id, endData);
               } else {
                 // Queue for offline sync
-                await syncAPI.addToQueue({
-                  operation: 'update_work_session',
-                  data: {
-                    workSessionId: session.id,
-                    ...endData
-                  }
+                await offlineQueue.addToQueue('update_work_session', {
+                  workSessionId: session.id,
+                  ...endData
                 });
               }
 
@@ -432,13 +428,14 @@ const WorkSessionScreen = ({ navigation }) => {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Network Status Banner */}
-      {!isOnline && (
-        <View style={styles.offlineBanner}>
-          <Text style={styles.offlineText}>📡 Оффлайн режим - данные будут синхронизированы позже</Text>
-        </View>
-      )}
+    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+      <ScrollView style={styles.container}>
+        {/* Network Status Banner */}
+        {!isOnline && (
+          <View style={styles.offlineBanner}>
+            <Text style={styles.offlineText}>📡 Оффлайн режим - данные будут синхронизированы позже</Text>
+          </View>
+        )}
 
       {/* Location Card */}
       <View style={styles.card}>
@@ -548,14 +545,18 @@ const WorkSessionScreen = ({ navigation }) => {
           • Автоматическая синхронизация при подключении
         </Text>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: '#f3f4f6',
+  },
+  container: {
+    flex: 1,
   },
   offlineBanner: {
     backgroundColor: '#fbbf24',

@@ -1,18 +1,20 @@
 import { useState, useEffect } from 'react';
-import { UserPlus, Edit, Trash2, Check, X, Search } from 'lucide-react';
+import { UserPlus, Edit, Trash2, Check, X, Search, UserCircle } from 'lucide-react';
+import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
 import Layout from '../components/Layout';
 import { usersAPI } from '../api/api';
 import Modal from '../components/Modal';
 import { useAuth } from '../context/AuthContext';
 
 const ROLES = [
-  { value: 'superadmin', label: 'Супер Администратор', color: 'bg-red-100 text-red-800' },
-  { value: 'regional_admin', label: 'Региональный Администратор', color: 'bg-purple-100 text-purple-800' },
-  { value: 'district_admin', label: 'Администратор Района', color: 'bg-blue-100 text-blue-800' },
-  { value: 'officer', label: 'Офицер', color: 'bg-green-100 text-green-800' },
-  { value: 'supervisor', label: 'Супервайзер', color: 'bg-yellow-100 text-yellow-800' },
-  { value: 'analyst', label: 'Аналитик', color: 'bg-indigo-100 text-indigo-800' },
-  { value: 'observer', label: 'Наблюдатель', color: 'bg-gray-100 text-gray-800' },
+  { value: 'superadmin', label: 'Супер Администратор', color: 'from-red-500 to-red-600', badge: 'bg-red-100 text-red-800' },
+  { value: 'regional_admin', label: 'Региональный Администратор', color: 'from-purple-500 to-purple-600', badge: 'bg-purple-100 text-purple-800' },
+  { value: 'district_admin', label: 'Администратор Района', color: 'from-blue-500 to-blue-600', badge: 'bg-blue-100 text-blue-800' },
+  { value: 'officer', label: 'Офицер', color: 'from-green-500 to-green-600', badge: 'bg-green-100 text-green-800' },
+  { value: 'supervisor', label: 'Супервайзер', color: 'from-yellow-500 to-yellow-600', badge: 'bg-yellow-100 text-yellow-800' },
+  { value: 'analyst', label: 'Аналитик', color: 'from-indigo-500 to-indigo-600', badge: 'bg-indigo-100 text-indigo-800' },
+  { value: 'observer', label: 'Наблюдатель', color: 'from-gray-500 to-gray-600', badge: 'bg-gray-100 text-gray-800' },
 ];
 
 const DISTRICTS = ['Bishkek', 'Osh', 'Jalal-Abad', 'Karakol', 'Batken', 'Talas', 'Naryn'];
@@ -47,6 +49,7 @@ const Users = () => {
       setUsers(response.data || []);
     } catch (error) {
       console.error('Error fetching users:', error);
+      toast.error('Ошибка при загрузке пользователей');
     } finally {
       setLoading(false);
     }
@@ -54,6 +57,7 @@ const Users = () => {
 
   const handleCreateUser = async (e) => {
     e.preventDefault();
+    const loadingToast = toast.loading('Создание пользователя...');
     try {
       await usersAPI.createUser(formData);
       setShowCreateModal(false);
@@ -67,50 +71,60 @@ const Users = () => {
         employeeId: ''
       });
       fetchUsers();
+      toast.success('Пользователь успешно создан', { id: loadingToast });
     } catch (error) {
       console.error('Error creating user:', error);
-      alert('Ошибка при создании пользователя');
+      toast.error('Ошибка при создании пользователя', { id: loadingToast });
     }
   };
 
   const handleUpdateRole = async (userId, newRole) => {
+    const loadingToast = toast.loading('Обновление роли...');
     try {
       await usersAPI.updateUserRole(userId, newRole);
       fetchUsers();
+      toast.success('Роль успешно обновлена', { id: loadingToast });
     } catch (error) {
       console.error('Error updating role:', error);
-      alert('Ошибка при обновлении роли');
+      toast.error('Ошибка при обновлении роли', { id: loadingToast });
     }
   };
 
   const handleActivateUser = async (userId) => {
+    const loadingToast = toast.loading('Активация пользователя...');
     try {
       await usersAPI.activateUser(userId);
       fetchUsers();
+      toast.success('Пользователь активирован', { id: loadingToast });
     } catch (error) {
       console.error('Error activating user:', error);
+      toast.error('Ошибка при активации', { id: loadingToast });
     }
   };
 
   const handleDeactivateUser = async (userId) => {
+    const loadingToast = toast.loading('Деактивация пользователя...');
     try {
       await usersAPI.deactivateUser(userId);
       fetchUsers();
+      toast.success('Пользователь деактивирован', { id: loadingToast });
     } catch (error) {
       console.error('Error deactivating user:', error);
+      toast.error('Ошибка при деактивации', { id: loadingToast });
     }
   };
 
   const handleDeleteUser = async () => {
+    const loadingToast = toast.loading('Удаление пользователя...');
     try {
       await usersAPI.deleteUser(deleteModal.user.id);
       setDeleteModal({ open: false, user: null });
       fetchUsers();
-      alert('Пользователь успешно удален');
+      toast.success('Пользователь успешно удален', { id: loadingToast });
     } catch (error) {
       console.error('Error deleting user:', error);
       const errorMessage = error.response?.data?.message || 'Ошибка при удалении пользователя';
-      alert(errorMessage);
+      toast.error(errorMessage, { id: loadingToast });
     }
   };
 
@@ -120,29 +134,42 @@ const Users = () => {
     user.employeeId?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getRoleBadgeColor = (role) => {
-    return ROLES.find(r => r.value === role)?.color || 'bg-gray-100 text-gray-800';
+  const getRoleInfo = (role) => {
+    return ROLES.find(r => r.value === role) || ROLES[ROLES.length - 1];
   };
 
   return (
     <Layout>
       {/* Header */}
-      <div className="mb-8 flex justify-between items-center">
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-8 flex justify-between items-center"
+      >
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Управление пользователями</h1>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+            Управление пользователями
+          </h1>
           <p className="text-gray-600 mt-2">Управление ролями и правами доступа</p>
         </div>
-        <button
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center space-x-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition shadow-md"
+          className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-6 py-3 rounded-lg hover:shadow-lg transition shadow-md"
         >
           <UserPlus size={20} />
           <span>Добавить пользователя</span>
-        </button>
-      </div>
+        </motion.button>
+      </motion.div>
 
       {/* Search */}
-      <div className="mb-6">
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="mb-6"
+      >
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
           <input
@@ -150,118 +177,153 @@ const Users = () => {
             placeholder="Поиск по имени, email или ID..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
           />
         </div>
-      </div>
+      </motion.div>
 
-      {/* Users Table */}
+      {/* Users Cards */}
       {loading ? (
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="bg-white p-6 rounded-xl shadow-md animate-pulse">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
+                <div className="flex-1">
+                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="h-3 bg-gray-200 rounded w-full"></div>
+                <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-md overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Пользователь
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Роль
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Район
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Статус
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Действия
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50 transition">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                          <span className="text-blue-600 font-bold">
-                            {user.fullName?.charAt(0)}
-                          </span>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-800">{user.fullName}</p>
-                          <p className="text-xs text-gray-500">{user.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(user.role)}`}>
-                        {ROLES.find(r => r.value === user.role)?.label || user.role}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {user.district || 'Не назначен'}
-                    </td>
-                    <td className="px-6 py-4">
-                      {user.isActive ? (
-                        <span className="flex items-center space-x-1 text-green-600 text-sm">
-                          <Check size={16} />
-                          <span>Активен</span>
+        <>
+          {filteredUsers.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center py-16"
+            >
+              <UserCircle className="mx-auto text-gray-300 mb-4" size={64} />
+              <h3 className="text-xl font-semibold text-gray-600 mb-2">Пользователи не найдены</h3>
+              <p className="text-gray-500 mb-6">Попробуйте изменить критерии поиска</p>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setShowCreateModal(true)}
+                className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-6 py-3 rounded-lg hover:shadow-lg transition"
+              >
+                Добавить первого пользователя
+              </motion.button>
+            </motion.div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredUsers.map((user, index) => {
+                const roleInfo = getRoleInfo(user.role);
+                return (
+                  <motion.div
+                    key={user.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    whileHover={{ y: -5, scale: 1.02 }}
+                    className="bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition-all border border-gray-100"
+                  >
+                    <div className="flex items-center space-x-3 mb-4">
+                      <div className={`w-12 h-12 bg-gradient-to-br ${roleInfo.color} rounded-full flex items-center justify-center`}>
+                        <span className="text-white font-bold text-lg">
+                          {user.fullName?.charAt(0)}
                         </span>
-                      ) : (
-                        <span className="flex items-center space-x-1 text-red-600 text-sm">
-                          <X size={16} />
-                          <span>Неактивен</span>
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center space-x-2">
-                        {user.isActive ? (
-                          <button
-                            onClick={() => handleDeactivateUser(user.id)}
-                            className="text-red-600 hover:text-red-800 transition"
-                            title="Деактивировать"
-                          >
-                            <X size={18} />
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleActivateUser(user.id)}
-                            className="text-green-600 hover:text-green-800 transition"
-                            title="Активировать"
-                          >
-                            <Check size={18} />
-                          </button>
-                        )}
-                        {currentUser?.role === 'superadmin' && user.id !== currentUser.id && (
-                          <button
-                            onClick={() => setDeleteModal({ open: true, user })}
-                            className="text-red-600 hover:text-red-800 transition"
-                            title="Удалить пользователя"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        )}
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      <div className="flex-1">
+                        <p className="text-lg font-bold text-gray-800">{user.fullName}</p>
+                        <p className="text-xs text-gray-500">{user.email}</p>
+                      </div>
+                    </div>
 
-          {filteredUsers.length === 0 && (
-            <div className="text-center py-12 text-gray-500">
-              Пользователи не найдены
+                    <div className="space-y-3 mb-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Роль:</span>
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${roleInfo.badge}`}>
+                          {roleInfo.label}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Район:</span>
+                        <span className="text-sm text-gray-800">{user.district || 'Не назначен'}</span>
+                      </div>
+
+                      {user.employeeId && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600">ID:</span>
+                          <span className="text-sm text-gray-800 font-mono">{user.employeeId}</span>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                        <span className="text-sm text-gray-600">Статус:</span>
+                        {user.isActive ? (
+                          <span className="flex items-center space-x-1 text-green-600 text-sm">
+                            <Check size={16} />
+                            <span>Активен</span>
+                          </span>
+                        ) : (
+                          <span className="flex items-center space-x-1 text-red-600 text-sm">
+                            <X size={16} />
+                            <span>Неактивен</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex space-x-2">
+                      {user.isActive ? (
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => handleDeactivateUser(user.id)}
+                          className="flex-1 flex items-center justify-center space-x-1 bg-red-50 text-red-600 hover:bg-red-100 py-2 rounded-lg transition"
+                          title="Деактивировать"
+                        >
+                          <X size={16} />
+                          <span className="text-sm">Деактивировать</span>
+                        </motion.button>
+                      ) : (
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => handleActivateUser(user.id)}
+                          className="flex-1 flex items-center justify-center space-x-1 bg-green-50 text-green-600 hover:bg-green-100 py-2 rounded-lg transition"
+                          title="Активировать"
+                        >
+                          <Check size={16} />
+                          <span className="text-sm">Активировать</span>
+                        </motion.button>
+                      )}
+                      {currentUser?.role === 'superadmin' && user.id !== currentUser.id && (
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => setDeleteModal({ open: true, user })}
+                          className="flex items-center justify-center text-red-600 hover:bg-red-50 py-2 px-3 rounded-lg transition"
+                          title="Удалить пользователя"
+                        >
+                          <Trash2 size={18} />
+                        </motion.button>
+                      )}
+                    </div>
+                  </motion.div>
+                );
+              })}
             </div>
           )}
-        </div>
+        </>
       )}
 
       {/* Create User Modal */}
@@ -369,19 +431,23 @@ const Users = () => {
           </div>
 
           <div className="flex space-x-3 pt-4">
-            <button
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               type="submit"
-              className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+              className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition"
             >
               Создать
-            </button>
-            <button
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               type="button"
               onClick={() => setShowCreateModal(false)}
               className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition"
             >
               Отмена
-            </button>
+            </motion.button>
           </div>
         </form>
       </Modal>
@@ -400,18 +466,22 @@ const Users = () => {
             Это действие необратимо. Пользователь будет удален из системы.
           </p>
           <div className="flex space-x-3 pt-4">
-            <button
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               onClick={handleDeleteUser}
-              className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
+              className="flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white px-4 py-2 rounded-lg hover:shadow-lg transition"
             >
               Удалить
-            </button>
-            <button
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => setDeleteModal({ open: false, user: null })}
               className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition"
             >
               Отмена
-            </button>
+            </motion.button>
           </div>
         </div>
       </Modal>

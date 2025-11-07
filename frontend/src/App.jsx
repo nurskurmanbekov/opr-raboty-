@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import Login from './pages/Login';
@@ -11,6 +12,10 @@ import Users from './pages/Users';
 import Geofences from './pages/Geofences';
 import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
+import MRUManagement from './pages/MRUManagement';
+import DistrictManagement from './pages/DistrictManagement';
+import Approvals from './pages/Approvals';
+import StatisticsDashboard from './pages/StatisticsDashboard';
 
 // Protected Route wrapper
 const ProtectedRoute = ({ children }) => {
@@ -116,6 +121,38 @@ function AppContent() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/mru"
+        element={
+          <ProtectedRoute>
+            <MRUManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/districts"
+        element={
+          <ProtectedRoute>
+            <DistrictManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/approvals"
+        element={
+          <ProtectedRoute>
+            <Approvals />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/statistics"
+        element={
+          <ProtectedRoute>
+            <StatisticsDashboard />
+          </ProtectedRoute>
+        }
+      />
       <Route path="/" element={<Navigate to="/dashboard" />} />
     </Routes>
   );
@@ -127,6 +164,33 @@ function App() {
       <ThemeProvider>
         <AuthProvider>
           <AppContent />
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: '#363636',
+                color: '#fff',
+                borderRadius: '10px',
+                padding: '16px',
+                fontSize: '14px',
+              },
+              success: {
+                duration: 3000,
+                iconTheme: {
+                  primary: '#10b981',
+                  secondary: '#fff',
+                },
+              },
+              error: {
+                duration: 4000,
+                iconTheme: {
+                  primary: '#ef4444',
+                  secondary: '#fff',
+                },
+              },
+            }}
+          />
         </AuthProvider>
       </ThemeProvider>
     </Router>

@@ -188,4 +188,64 @@ export const analyticsAPI = {
     })
 };
 
+// МРУ API
+export const mruAPI = {
+  getAllMRU: (params) => api.get('/mru', { params }),
+  getMRU: (id) => api.get(`/mru/${id}`),
+  getMRUStats: (id) => api.get(`/mru/${id}/stats`),
+  createMRU: (data) => api.post('/mru', data),
+  updateMRU: (id, data) => api.put(`/mru/${id}`, data),
+  deleteMRU: (id) => api.delete(`/mru/${id}`)
+};
+
+// Districts API
+export const districtsAPI = {
+  getAllDistricts: (params) => api.get('/districts', { params }),
+  getDistrict: (id) => api.get(`/districts/${id}`),
+  getDistrictStats: (id) => api.get(`/districts/${id}/stats`),
+  createDistrict: (data) => api.post('/districts', data),
+  updateDistrict: (id, data) => api.put(`/districts/${id}`, data),
+  deleteDistrict: (id) => api.delete(`/districts/${id}`)
+};
+
+// Approvals API
+export const approvalsAPI = {
+  getAllApprovals: (params) => api.get('/approvals', { params }),
+  getApproval: (id) => api.get(`/approvals/${id}`),
+  createOfficerApproval: (data) => api.post('/approvals/officer', data),
+  createClientApproval: (data) => api.post('/approvals/client', data),
+  approveApproval: (id, data) => api.post(`/approvals/${id}/approve`, data),
+  rejectApproval: (id, data) => api.post(`/approvals/${id}/reject`, data)
+};
+
+// Client Reassignment API
+export const reassignmentAPI = {
+  reassignClient: (clientId, data) => api.post(`/clients/${clientId}/reassign`, data),
+  getAssignmentHistory: (clientId) => api.get(`/clients/${clientId}/assignment-history`),
+  reassignAllClients: (officerId, data) => api.post(`/officers/${officerId}/reassign-all-clients`, data)
+};
+
+// Auditor API
+export const auditorAPI = {
+  setPermissions: (userId, data) => api.post(`/auditors/${userId}/permissions`, data),
+  getPermissions: (userId) => api.get(`/auditors/${userId}/permissions`),
+  getOverviewStatistics: (params) => api.get('/auditors/statistics/overview', { params }),
+  getStatisticsByMRU: (params) => api.get('/auditors/statistics/by-mru', { params }),
+  getStatisticsByDistrict: (params) => api.get('/auditors/statistics/by-district', { params })
+};
+
+// Export API
+export const exportAPI = {
+  exportStatisticsToExcel: (params) =>
+    api.get('/export/statistics/excel', {
+      params,
+      responseType: 'blob'
+    }),
+  exportClientsToExcel: (params) =>
+    api.get('/export/clients/excel', {
+      params,
+      responseType: 'blob'
+    })
+};
+
 export default api;

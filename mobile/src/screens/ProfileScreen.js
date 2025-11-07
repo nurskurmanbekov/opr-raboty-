@@ -8,6 +8,7 @@ import {
   Alert,
   TextInput,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { profileAPI, syncAPI } from '../api/api';
 import Button from '../components/Button';
@@ -139,16 +140,17 @@ const ProfileScreen = ({ navigation }) => {
 
   if (!user) {
     return (
-      <View style={styles.loadingContainer}>
+      <SafeAreaView style={styles.loadingContainer}>
         <Text>Загрузка...</Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Profile Header */}
-      <View style={styles.header}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <ScrollView style={styles.scrollView}>
+        {/* Profile Header */}
+        <View style={styles.header}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{user.fullName?.charAt(0)}</Text>
         </View>
@@ -303,12 +305,17 @@ const ProfileScreen = ({ navigation }) => {
       </View>
 
       <View style={{ height: 40 }} />
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+    backgroundColor: '#3b82f6',
+  },
+  scrollView: {
     flex: 1,
     backgroundColor: '#f3f4f6',
   },
@@ -316,6 +323,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#f3f4f6',
   },
   header: {
     backgroundColor: '#3b82f6',
