@@ -1,6 +1,23 @@
 import { useState } from 'react';
 import { X, ChevronLeft, ChevronRight, Camera, MapPin, Clock } from 'lucide-react';
 
+// Smart server URL detection for static files (images, uploads)
+const getServerUrl = () => {
+  // 1. If VITE_API_URL is set, remove '/api' from the end
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL.replace(/\/api$/, '');
+  }
+
+  // 2. If accessing via localhost/127.0.0.1 - use localhost
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return 'http://localhost:5000';
+  }
+
+  // 3. If accessing via IP address - use the same IP for server
+  const hostname = window.location.hostname;
+  return `http://${hostname}:5000`;
+};
+
 const PhotoGallery = ({ photos, onClose, sessionInfo }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -22,7 +39,7 @@ const PhotoGallery = ({ photos, onClose, sessionInfo }) => {
   }
 
   const currentPhoto = photos[currentIndex];
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const API_URL = getServerUrl();
 
   const goToNext = () => {
     setCurrentIndex((prev) => (prev + 1) % photos.length);

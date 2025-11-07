@@ -4,6 +4,25 @@ import L from 'leaflet';
 import { X, MapPin, Camera, Clock, AlertTriangle, TrendingUp, Filter } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 
+// Smart API URL detection for fetch requests
+const getApiUrl = () => {
+  // 1. If environment variable is set - use it (highest priority)
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+
+  // 2. If accessing via localhost/127.0.0.1 - use localhost
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return 'http://localhost:5000/api';
+  }
+
+  // 3. If accessing via IP address - use the same IP for API (network access)
+  const hostname = window.location.hostname;
+  return `http://${hostname}:5000/api`;
+};
+
+const API_URL = getApiUrl();
+
 // Fix for default marker icon
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -72,7 +91,7 @@ const WorkSessionMap = ({ sessionId, onClose }) => {
   const fetchRouteData = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:5000/api/work-sessions/${sessionId}/route`, {
+      const response = await fetch(`${API_URL}/work-sessions/${sessionId}/route`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
