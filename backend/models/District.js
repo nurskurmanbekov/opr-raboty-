@@ -9,13 +9,11 @@ const District = sequelize.define('District', {
   },
   name: {
     type: DataTypes.STRING,
-    allowNull: false,
-    comment: 'Название района, например: Ленинский район'
+    allowNull: false
   },
   city: {
     type: DataTypes.STRING,
-    allowNull: false,
-    comment: 'Город, например: Бишкек'
+    allowNull: false
   },
   mruId: {
     type: DataTypes.UUID,
@@ -23,14 +21,11 @@ const District = sequelize.define('District', {
     references: {
       model: 'MRUs',
       key: 'id'
-    },
-    comment: 'ID МРУ к которому относится район'
+    }
   },
   code: {
     type: DataTypes.STRING,
-    allowNull: true,
-    unique: true,
-    comment: 'Уникальный код района'
+    allowNull: true
   },
   description: {
     type: DataTypes.TEXT,
@@ -42,7 +37,13 @@ const District = sequelize.define('District', {
   }
 }, {
   timestamps: true,
-  tableName: 'Districts'
+  tableName: 'Districts',
+  indexes: [
+    {
+      unique: true,
+      fields: ['code']
+    }
+  ]
 });
 
 module.exports = District;

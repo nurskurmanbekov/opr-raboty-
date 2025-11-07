@@ -9,19 +9,15 @@ const MRU = sequelize.define('MRU', {
   },
   name: {
     type: DataTypes.STRING,
-    allowNull: false,
-    comment: 'Название МРУ, например: МРУ Север'
+    allowNull: false
   },
   region: {
     type: DataTypes.STRING,
-    allowNull: false,
-    comment: 'Регион, например: Чуйская область'
+    allowNull: false
   },
   code: {
     type: DataTypes.STRING,
-    allowNull: true,
-    unique: true,
-    comment: 'Уникальный код МРУ'
+    allowNull: true
   },
   description: {
     type: DataTypes.TEXT,
@@ -33,7 +29,13 @@ const MRU = sequelize.define('MRU', {
   }
 }, {
   timestamps: true,
-  tableName: 'MRUs'
+  tableName: 'MRUs',
+  indexes: [
+    {
+      unique: true,
+      fields: ['code']
+    }
+  ]
 });
 
 module.exports = MRU;
