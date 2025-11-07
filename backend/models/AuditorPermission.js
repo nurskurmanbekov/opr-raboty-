@@ -13,34 +13,30 @@ const AuditorPermission = sequelize.define('AuditorPermission', {
     references: {
       model: 'Users',
       key: 'id'
-    },
-    comment: 'ID аудитора'
+    }
   },
   accessType: {
-    type: DataTypes.ENUM('all', 'mru', 'district'),
+    type: DataTypes.ENUM({
+      values: ['all', 'mru', 'district']
+    }),
     allowNull: false,
-    defaultValue: 'all',
-    comment: 'Тип доступа: все данные, конкретные МРУ или конкретные районы'
+    defaultValue: 'all'
   },
   allowedMruIds: {
     type: DataTypes.JSON,
-    defaultValue: [],
-    comment: 'Список ID МРУ, к которым есть доступ'
+    defaultValue: []
   },
   allowedDistrictIds: {
     type: DataTypes.JSON,
-    defaultValue: [],
-    comment: 'Список ID районов, к которым есть доступ'
+    defaultValue: []
   },
   organization: {
     type: DataTypes.STRING,
-    allowNull: true,
-    comment: 'Организация аудитора, например: Администрация Президента'
+    allowNull: true
   },
   notes: {
     type: DataTypes.TEXT,
-    allowNull: true,
-    comment: 'Примечания о правах доступа'
+    allowNull: true
   },
   isActive: {
     type: DataTypes.BOOLEAN,
