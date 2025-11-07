@@ -5,8 +5,29 @@
 
 import axios from 'axios';
 
-// Vite uses import.meta.env instead of process.env
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// Smart API URL detection for local network access
+const getApiUrl = () => {
+  // 1. If environment variable is set - use it (highest priority)
+  if (import.meta.env.VITE_API_URL) {
+    console.log('🔧 Using VITE_API_URL from .env:', import.meta.env.VITE_API_URL);
+    return import.meta.env.VITE_API_URL;
+  }
+
+  // 2. If accessing via localhost/127.0.0.1 - use localhost
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    console.log('🏠 Accessing via localhost - using localhost API');
+    return 'http://localhost:5000/api';
+  }
+
+  // 3. If accessing via IP address - use the same IP for API (network access)
+  const hostname = window.location.hostname;
+  const apiUrl = `http://${hostname}:5000/api`;
+  console.log('🌐 Accessing via network IP - using:', apiUrl);
+  return apiUrl;
+};
+
+const API_URL = getApiUrl();
+console.log('✅ Final API_URL:', API_URL);
 
 // Create axios instance
 const api = axios.create({
