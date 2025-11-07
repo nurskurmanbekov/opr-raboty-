@@ -8,35 +8,33 @@ const PendingApproval = sequelize.define('PendingApproval', {
     primaryKey: true
   },
   type: {
-    type: DataTypes.ENUM('officer', 'client'),
-    allowNull: false,
-    comment: 'Тип заявки: регистрация офицера или создание клиента'
+    type: DataTypes.ENUM({
+      values: ['officer', 'client']
+    }),
+    allowNull: false
   },
   status: {
-    type: DataTypes.ENUM('pending', 'approved', 'rejected'),
+    type: DataTypes.ENUM({
+      values: ['pending', 'approved', 'rejected']
+    }),
     allowNull: false,
-    defaultValue: 'pending',
-    comment: 'Статус заявки'
+    defaultValue: 'pending'
   },
   requesterId: {
     type: DataTypes.UUID,
-    allowNull: false,
-    comment: 'ID пользователя, который создал заявку'
+    allowNull: false
   },
   targetId: {
     type: DataTypes.UUID,
-    allowNull: true,
-    comment: 'ID созданного пользователя или клиента (после одобрения)'
+    allowNull: true
   },
   data: {
     type: DataTypes.JSON,
-    allowNull: false,
-    comment: 'Данные заявки (ФИО, телефон, и т.д.)'
+    allowNull: false
   },
   reviewerId: {
     type: DataTypes.UUID,
-    allowNull: true,
-    comment: 'ID администратора, который рассмотрел заявку'
+    allowNull: true
   },
   reviewedAt: {
     type: DataTypes.DATE,
@@ -44,18 +42,15 @@ const PendingApproval = sequelize.define('PendingApproval', {
   },
   rejectionReason: {
     type: DataTypes.TEXT,
-    allowNull: true,
-    comment: 'Причина отклонения заявки'
+    allowNull: true
   },
   assignedMruId: {
     type: DataTypes.UUID,
-    allowNull: true,
-    comment: 'МРУ, назначенное офицеру (только для officer)'
+    allowNull: true
   },
   assignedDistrictId: {
     type: DataTypes.UUID,
-    allowNull: true,
-    comment: 'Район, назначенный офицеру (только для officer)'
+    allowNull: true
   }
 }, {
   timestamps: true,
