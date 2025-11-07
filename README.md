@@ -100,6 +100,33 @@ npm run dev
 
 **Веб-панель доступна на:** `http://localhost:5173`
 
+**🌐 Для доступа из локальной сети:**
+
+Хотите чтобы коллеги могли зайти с других компьютеров?
+
+1. Создайте `frontend/.env`:
+   ```bash
+   copy .env.example .env
+   ```
+
+2. Укажите ваш IP адрес:
+   ```env
+   VITE_API_URL=http://10.99.7.91:5000/api
+   ```
+   (узнайте свой IP через `ipconfig`)
+
+3. Откройте порты в Firewall (PowerShell от администратора):
+   ```powershell
+   New-NetFirewallRule -DisplayName "Probation Backend" -Direction Inbound -LocalPort 5000 -Protocol TCP -Action Allow
+   New-NetFirewallRule -DisplayName "Probation Frontend" -Direction Inbound -LocalPort 5173 -Protocol TCP -Action Allow
+   ```
+
+4. Перезапустите `npm run dev`
+
+5. Коллеги открывают: `http://ваш-IP:5173`
+
+**📚 Подробная инструкция:** См. `LOCAL_NETWORK_SETUP.md`
+
 **Тестовые аккаунты для входа:**
 
 - **Суперадмин:**
