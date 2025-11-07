@@ -55,10 +55,11 @@ const User = sequelize.define('User', {
     comment: 'Организация (для auditor)'
   },
   approvalStatus: {
-    type: DataTypes.ENUM('pending', 'approved', 'rejected'),
+    type: DataTypes.ENUM({
+      values: ['pending', 'approved', 'rejected']
+    }),
     allowNull: true,
-    defaultValue: 'approved',
-    comment: 'Статус одобрения (для новых офицеров)'
+    defaultValue: 'approved'
   },
   permissions: {
     type: DataTypes.JSON,
