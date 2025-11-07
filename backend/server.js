@@ -50,6 +50,24 @@ app.get('/', (req, res) => {
   });
 });
 
+// API Health Check - для мобильного приложения
+app.get('/api', (req, res) => {
+  res.json({
+    success: true,
+    message: '🚀 Probation System API',
+    version: '1.0.0',
+    status: 'running',
+    timestamp: new Date().toISOString(),
+    endpoints: {
+      auth: '/api/auth/*',
+      users: '/api/users/*',
+      clients: '/api/clients/*',
+      workSessions: '/api/work-sessions/*',
+      gps: '/api/gps/*'
+    }
+  });
+});
+
 // API Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
