@@ -15,5 +15,5 @@ android/
 ios/
 
 # Environment variables
-.env
+# .env - закоммичен для production сборки (содержит публичный API URL)
 .env.local
