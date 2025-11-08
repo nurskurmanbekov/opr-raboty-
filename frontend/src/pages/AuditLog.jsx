@@ -286,7 +286,7 @@ const AuditLog = () => {
             className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full"
           />
         </div>
-      ) : logs.length === 0 ? (
+      ) : (logs?.length || 0) === 0 ? (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -306,7 +306,7 @@ const AuditLog = () => {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
           >
-            {logs.map((log) => (
+            {(logs || []).map((log) => (
               <LogEntry key={log.id} log={log} />
             ))}
           </motion.div>

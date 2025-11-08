@@ -334,7 +334,7 @@ const DrilldownNavigation = () => {
             className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full"
           />
         </div>
-      ) : data.length === 0 ? (
+      ) : (data?.length || 0) === 0 ? (
         <div className={`text-center py-20 rounded-xl ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
           <p className={`text-lg ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
             Нет данных для отображения
@@ -343,7 +343,7 @@ const DrilldownNavigation = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <AnimatePresence>
-            {data.map((item, index) => (
+            {(data || []).map((item, index) => (
               <motion.div
                 key={item.id || index}
                 initial={{ opacity: 0, y: 20 }}
