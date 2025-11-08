@@ -1,5 +1,4 @@
 const { Client, User, WorkSession, Photo } = require('../models');
-const bcrypt = require('bcryptjs');
 
 // @desc    Get all clients
 // @route   GET /api/clients
@@ -123,17 +122,14 @@ exports.createClient = async (req, res, next) => {
       });
     }
 
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    // Create client (поддержка как старого district, так и нового districtId)
+    // Create client (пароль будет автоматически захеширован через beforeCreate хук в модели)
+    // ВАЖНО: НЕ хешируем пароль вручную, т.к. модель уже имеет beforeCreate хук
     const client = await Client.create({
       fullName,
       idNumber,
       phone,
       email,
-      password: hashedPassword,
+      password, // Передаем пароль в чистом виде - хук модели сделает хеширование
       district: district || null,
       districtId: districtId || null,
       assignedHours,

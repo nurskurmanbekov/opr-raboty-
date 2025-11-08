@@ -47,7 +47,38 @@ psql -U postgres -d probation_system -f backend/utils/addDistrictIdToClients.sql
 
 ---
 
-### 3. `cleanDatabase.js` - Очистка базы данных (Node.js)
+### 3. `updateClientPassword.js` - Обновление пароля клиента (Node.js)
+
+**Описание:** Обновляет пароль клиента в базе данных.
+
+**Использование:**
+```bash
+cd backend
+node utils/updateClientPassword.js <email_или_idNumber> <новый_пароль>
+```
+
+**Примеры:**
+```bash
+# Обновить по email
+node utils/updateClientPassword.js nnurskurmanbekov@gmail.com 123456
+
+# Обновить по ID номеру
+node utils/updateClientPassword.js 12345678902345 newPassword123
+```
+
+**Что делает:**
+- ✅ Находит клиента по email или ID номеру
+- ✅ Обновляет пароль (автоматически хеширует)
+- ✅ Выводит информацию о клиенте
+
+**Когда использовать:**
+- Клиент забыл пароль
+- После миграции данных
+- Для тестирования
+
+---
+
+### 4. `cleanDatabase.js` - Очистка базы данных (Node.js)
 
 **Описание:** Удаляет всех клиентов и всех пользователей, оставляя только одного superadmin.
 
@@ -69,7 +100,7 @@ node utils/cleanDatabase.js
 
 ---
 
-### 4. `cleanDatabase.sql` - Очистка базы данных (SQL)
+### 5. `cleanDatabase.sql` - Очистка базы данных (SQL)
 
 **Описание:** SQL скрипт для очистки базы данных через pgAdmin или psql.
 
@@ -96,7 +127,7 @@ psql -U postgres -d probation_system -f backend/utils/cleanDatabase.sql
 
 ---
 
-### 5. `listUsers.js` - Просмотр всех пользователей
+### 6. `listUsers.js` - Просмотр всех пользователей
 
 **Описание:** Выводит список всех пользователей и клиентов в системе.
 
