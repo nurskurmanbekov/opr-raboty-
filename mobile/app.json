@@ -18,10 +18,17 @@
     },
     "android": {
       "package": "com.probation.mobile",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#3b82f6"
+      },
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
-        "CAMERA"
+        "ACCESS_BACKGROUND_LOCATION",
+        "CAMERA",
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
       ]
     },
     "web": {
@@ -31,9 +38,22 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Приложению необходим доступ к местоположению для отслеживания рабочих часов."
+          "locationAlwaysAndWhenInUsePermission": "Приложению необходим доступ к местоположению для отслеживания рабочих часов.",
+          "locationWhenInUsePermission": "Приложению необходим доступ к местоположению для отслеживания рабочих часов.",
+          "isAndroidBackgroundLocationEnabled": true
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Разрешите $(PRODUCT_NAME) доступ к вашей камере для фото-верификации работы."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "probation-kg-mobile"
+      }
+    }
   }
 }
