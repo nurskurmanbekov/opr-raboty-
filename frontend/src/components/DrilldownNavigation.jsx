@@ -291,7 +291,7 @@ const DrilldownNavigation = () => {
 
           <div className={`px-4 py-2 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-100'}`}>
             <span className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-              Всего: {data.length}
+              Всего: {data?.length || 0}
             </span>
           </div>
         </div>

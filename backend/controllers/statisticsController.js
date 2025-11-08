@@ -117,10 +117,10 @@ exports.getDashboardStats = async (req, res, next) => {
       where: dateFilter.createdAt ? { createdAt: dateFilter.createdAt } : {}
     });
 
-    // Одобренные сессии
+    // Одобренные сессии (верифицированные)
     const approvedSessions = await WorkSession.count({
       where: {
-        verificationStatus: 'approved',
+        status: 'verified',
         ...(dateFilter.createdAt ? { createdAt: dateFilter.createdAt } : {})
       }
     });
@@ -128,15 +128,15 @@ exports.getDashboardStats = async (req, res, next) => {
     // Отклоненные сессии
     const rejectedSessions = await WorkSession.count({
       where: {
-        verificationStatus: 'rejected',
+        status: 'rejected',
         ...(dateFilter.createdAt ? { createdAt: dateFilter.createdAt } : {})
       }
     });
 
-    // Ожидают проверки
+    // Ожидают проверки (завершенные, но не верифицированные)
     const pendingSessions = await WorkSession.count({
       where: {
-        verificationStatus: 'pending',
+        status: 'completed',
         ...(dateFilter.createdAt ? { createdAt: dateFilter.createdAt } : {})
       }
     });
