@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const {
   exportStatisticsToExcel,
-  exportClientsToExcel
+  exportClientsToExcel,
+  exportStatisticsToPDF
 } = require('../controllers/exportController');
 const { protect, authorize } = require('../middleware/auth');
 const { checkAuditorAccess } = require('../middleware/auditorAccess');
@@ -23,6 +24,14 @@ router.get(
   authorize('auditor', 'central_admin', 'superadmin', 'mru_manager', 'district_manager', 'officer'),
   checkAuditorAccess,
   exportClientsToExcel
+);
+
+// Экспорт общей статистики в PDF
+router.get(
+  '/statistics/pdf',
+  authorize('auditor', 'central_admin', 'superadmin', 'mru_manager', 'district_manager'),
+  checkAuditorAccess,
+  exportStatisticsToPDF
 );
 
 module.exports = router;
