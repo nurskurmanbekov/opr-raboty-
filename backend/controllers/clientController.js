@@ -106,6 +106,7 @@ exports.createClient = async (req, res, next) => {
       email,
       password,
       district,
+      districtId,
       assignedHours,
       startDate,
       officerId,
@@ -126,14 +127,15 @@ exports.createClient = async (req, res, next) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create client
+    // Create client (поддержка как старого district, так и нового districtId)
     const client = await Client.create({
       fullName,
       idNumber,
       phone,
       email,
       password: hashedPassword,
-      district,
+      district: district || null,
+      districtId: districtId || null,
       assignedHours,
       startDate,
       officerId,
