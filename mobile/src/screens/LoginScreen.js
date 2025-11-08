@@ -25,14 +25,20 @@ const LoginScreen = ({ navigation }) => {
       return;
     }
 
+    console.log('🔐 Starting login process...');
+    console.log('📧 Email:', email);
+    console.log('🌐 API instance:', api.defaults.baseURL);
+
     setLoading(true);
     try {
+      console.log('📤 Sending POST request to /auth/login');
       const response = await api.post('/auth/login', {
         email: email,
         password: password,
         userType: 'client', // ВАЖНО: указываем что это клиент!
       });
 
+      console.log('✅ Login response received:', response.data);
       const { token, user } = response.data.data;
 
       // Проверяем что это клиент
@@ -47,12 +53,26 @@ const LoginScreen = ({ navigation }) => {
 
       navigation.replace('Home');
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('❌ Login error:', error);
+      console.error('Error message:', error.message);
       console.error('Error response:', error.response?.data);
-      Alert.alert(
-        'Ошибка входа',
-        error.response?.data?.message || 'Неверный email или пароль'
-      );
+      console.error('Error status:', error.response?.status);
+      console.error('Error request:', error.request ? 'Request was made but no response' : 'No request');
+
+      let errorMessage = 'Неверный email или пароль';
+
+      if (error.response) {
+        // Сервер ответил с ошибкой
+        errorMessage = error.response?.data?.message || 'Ошибка сервера';
+      } else if (error.request) {
+        // Запрос был отправлен но ответа не получено
+        errorMessage = 'Не удалось подключиться к серверу. Проверьте интернет соединение.';
+      } else {
+        // Ошибка при создании запроса
+        errorMessage = error.message || 'Произошла ошибка';
+      }
+
+      Alert.alert('Ошибка входа', errorMessage);
     } finally {
       setLoading(false);
     }
