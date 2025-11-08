@@ -15,20 +15,17 @@ const AuditLog = sequelize.define('AuditLog', {
     references: {
       model: 'Users',
       key: 'id'
-    },
-    comment: 'ID пользователя, выполнившего действие'
+    }
   },
 
   userName: {
     type: DataTypes.STRING,
-    allowNull: true,
-    comment: 'Имя пользователя на момент действия'
+    allowNull: true
   },
 
   userRole: {
     type: DataTypes.STRING,
-    allowNull: true,
-    comment: 'Роль пользователя на момент действия'
+    allowNull: true
   },
 
   // Что было сделано
@@ -49,8 +46,7 @@ const AuditLog = sequelize.define('AuditLog', {
       'verify',           // Верификация
       'send_notification' // Отправка уведомления
     ),
-    allowNull: false,
-    comment: 'Тип действия'
+    allowNull: false
   },
 
   // С какой сущностью
@@ -67,61 +63,52 @@ const AuditLog = sequelize.define('AuditLog', {
       'report',
       'system'
     ),
-    allowNull: true,
-    comment: 'Тип сущности'
+    allowNull: true
   },
 
   entityId: {
     type: DataTypes.UUID,
-    allowNull: true,
-    comment: 'ID сущности'
+    allowNull: true
   },
 
   entityName: {
     type: DataTypes.STRING,
-    allowNull: true,
-    comment: 'Название/имя сущности для отображения'
+    allowNull: true
   },
 
   // Детали изменений
   changes: {
     type: DataTypes.JSONB,
     allowNull: true,
-    comment: 'JSON с деталями изменений {old: {...}, new: {...}}',
     defaultValue: {}
   },
 
   // Дополнительная информация
   description: {
     type: DataTypes.TEXT,
-    allowNull: true,
-    comment: 'Описание действия'
+    allowNull: true
   },
 
   // Технические данные
   ipAddress: {
     type: DataTypes.STRING(45), // IPv6 поддержка
-    allowNull: true,
-    comment: 'IP адрес пользователя'
+    allowNull: true
   },
 
   userAgent: {
     type: DataTypes.TEXT,
-    allowNull: true,
-    comment: 'User Agent (браузер/устройство)'
+    allowNull: true
   },
 
   // Статус
   status: {
     type: DataTypes.ENUM('success', 'failed', 'pending'),
-    defaultValue: 'success',
-    comment: 'Статус выполнения действия'
+    defaultValue: 'success'
   },
 
   errorMessage: {
     type: DataTypes.TEXT,
-    allowNull: true,
-    comment: 'Сообщение об ошибке (если failed)'
+    allowNull: true
   }
 }, {
   tableName: 'audit_logs',
