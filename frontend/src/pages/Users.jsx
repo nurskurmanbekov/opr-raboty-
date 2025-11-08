@@ -3,7 +3,7 @@ import { UserPlus, Edit, Trash2, Check, X, Search, UserCircle } from 'lucide-rea
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import Layout from '../components/Layout';
-import { usersAPI } from '../api/api';
+import { usersAPI, mruAPI, districtsAPI } from '../api/api';
 import Modal from '../components/Modal';
 import { useAuth } from '../context/AuthContext';
 
@@ -22,6 +22,8 @@ const DISTRICTS = ['Bishkek', 'Osh', 'Jalal-Abad', 'Karakol', 'Batken', 'Talas',
 const Users = () => {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
+  const [mrus, setMrus] = useState([]);
+  const [districts, setDistricts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -40,6 +42,8 @@ const Users = () => {
 
   useEffect(() => {
     fetchUsers();
+    fetchMRUs();
+    fetchDistricts();
   }, []);
 
   const fetchUsers = async () => {
@@ -52,6 +56,24 @@ const Users = () => {
       toast.error('Ошибка при загрузке пользователей');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchMRUs = async () => {
+    try {
+      const response = await mruAPI.getAllMRU();
+      setMrus(response.data || []);
+    } catch (error) {
+      console.error('Error fetching MRUs:', error);
+    }
+  };
+
+  const fetchDistricts = async () => {
+    try {
+      const response = await districtsAPI.getAllDistricts();
+      setDistricts(response.data || []);
+    } catch (error) {
+      console.error('Error fetching districts:', error);
     }
   };
 
@@ -136,6 +158,31 @@ const Users = () => {
 
   const getRoleInfo = (role) => {
     return ROLES.find(r => r.value === role) || ROLES[ROLES.length - 1];
+  };
+
+  const getUserLocation = (user) => {
+    // Сначала проверяем districtId (район)
+    if (user.districtId) {
+      const district = districts.find(d => d.id === user.districtId);
+      if (district) {
+        return `${district.name} (район)`;
+      }
+    }
+
+    // Затем проверяем mruId (МРУ)
+    if (user.mruId) {
+      const mru = mrus.find(m => m.id === user.mruId);
+      if (mru) {
+        return `${mru.name} (МРУ)`;
+      }
+    }
+
+    // Fallback на старое поле district
+    if (user.district) {
+      return user.district;
+    }
+
+    return 'Не назначен';
   };
 
   return (
@@ -255,8 +302,8 @@ const Users = () => {
                       </div>
 
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Район:</span>
-                        <span className="text-sm text-gray-800">{user.district || 'Не назначен'}</span>
+                        <span className="text-sm text-gray-600">Расположение:</span>
+                        <span className="text-sm text-gray-800 font-medium">{getUserLocation(user)}</span>
                       </div>
 
                       {user.employeeId && (
