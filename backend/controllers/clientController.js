@@ -149,6 +149,17 @@ exports.createClient = async (req, res, next) => {
       data: client
     });
   } catch (error) {
+    console.error('❌ Error creating client:', error);
+    console.error('📋 Error details:', error.message);
+    if (error.name === 'SequelizeValidationError') {
+      const validationErrors = error.errors.map(e => ({ field: e.path, message: e.message }));
+      console.error('🔍 Validation errors:', validationErrors);
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: validationErrors
+      });
+    }
     next(error);
   }
 };
