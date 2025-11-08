@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Разрешаем HTTP для нашего API сервера -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">85.113.27.42</domain>
+    </domain-config>
+
+    <!-- По умолчанию блокируем cleartext для всех остальных -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

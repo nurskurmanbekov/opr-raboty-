@@ -49,7 +49,8 @@
         {
           "cameraPermission": "Разрешите $(PRODUCT_NAME) доступ к вашей камере для фото-верификации работы."
         }
-      ]
+      ],
+      "./plugins/withAndroidNetworkSecurityConfig.js"
     ]
   }
 }
