@@ -17,8 +17,6 @@ const ROLES = [
   { value: 'observer', label: 'Наблюдатель', color: 'from-gray-500 to-gray-600', badge: 'bg-gray-100 text-gray-800' },
 ];
 
-const DISTRICTS = ['Bishkek', 'Osh', 'Jalal-Abad', 'Karakol', 'Batken', 'Talas', 'Naryn'];
-
 const Users = () => {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
@@ -36,7 +34,8 @@ const Users = () => {
     password: '',
     phone: '',
     role: 'officer',
-    district: 'Bishkek',
+    mruId: '',
+    districtId: '',
     employeeId: ''
   });
 
@@ -89,7 +88,8 @@ const Users = () => {
         password: '',
         phone: '',
         role: 'officer',
-        district: 'Bishkek',
+        mruId: '',
+        districtId: '',
         employeeId: ''
       });
       fetchUsers();
@@ -452,19 +452,44 @@ const Users = () => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Район
+              МРУ (Межрайонное управление)
             </label>
             <select
-              value={formData.district}
-              onChange={(e) => setFormData({ ...formData, district: e.target.value })}
+              value={formData.mruId}
+              onChange={(e) => setFormData({ ...formData, mruId: e.target.value, districtId: '' })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              {DISTRICTS.map((district) => (
-                <option key={district} value={district}>
-                  {district}
+              <option value="">Не назначен</option>
+              {mrus.map((mru) => (
+                <option key={mru.id} value={mru.id}>
+                  {mru.name}
                 </option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Район
+            </label>
+            <select
+              value={formData.districtId}
+              onChange={(e) => setFormData({ ...formData, districtId: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={!formData.mruId}
+            >
+              <option value="">Не назначен</option>
+              {districts
+                .filter(d => !formData.mruId || d.mruId === formData.mruId)
+                .map((district) => (
+                  <option key={district.id} value={district.id}>
+                    {district.name}
+                  </option>
+                ))}
+            </select>
+            {!formData.mruId && (
+              <p className="text-xs text-gray-500 mt-1">Сначала выберите МРУ</p>
+            )}
           </div>
 
           <div>
