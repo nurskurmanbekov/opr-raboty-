@@ -146,11 +146,9 @@ exports.getDashboardStats = async (req, res, next) => {
       where: dateFilter.createdAt ? { createdAt: dateFilter.createdAt } : {}
     });
 
-    // Фото требуют верификации
-    const photosNeedVerification = await Photo.count({
-      where: {
-        verificationStatus: 'pending'
-      }
+    // Всего фото (верификация фото пока не реализована)
+    const totalPhotos = await Photo.count({
+      where: dateFilter.createdAt ? { createdAt: dateFilter.createdAt } : {}
     });
 
     // ЧАСЫ РАБОТЫ
@@ -218,7 +216,7 @@ exports.getDashboardStats = async (req, res, next) => {
         },
         // Фото
         photos: {
-          needVerification: photosNeedVerification
+          total: totalPhotos
         },
         // Часы работы
         workHours: {
