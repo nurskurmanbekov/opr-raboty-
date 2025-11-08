@@ -47,7 +47,29 @@ psql -U postgres -d probation_system -f backend/utils/addDistrictIdToClients.sql
 
 ---
 
-### 3. `updateClientPassword.js` - Обновление пароля клиента (Node.js)
+### 3. `addCoordinatesToDistricts.js` - Добавление координат в таблицу Districts (Node.js)
+
+**Описание:** Миграция базы данных для добавления поля coordinates в таблицу Districts.
+
+**Использование:**
+```bash
+cd backend
+node utils/addCoordinatesToDistricts.js
+```
+
+**Что делает:**
+- ✅ Добавляет колонку `coordinates` (JSON, nullable)
+- ✅ Добавляет комментарий к колонке
+- ✅ Проверяет структуру таблицы
+- ✅ Выводит количество районов
+
+**После выполнения:**
+- Перезапустите backend сервер
+- Координаты можно добавлять через админ-панель
+
+---
+
+### 4. `updateClientPassword.js` - Обновление пароля клиента (Node.js)
 
 **Описание:** Обновляет пароль клиента в базе данных.
 
