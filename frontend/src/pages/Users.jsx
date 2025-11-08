@@ -32,7 +32,7 @@ const Users = () => {
     fullName: '',
     email: '',
     password: '',
-    phoneNumber: '',
+    phone: '',
     role: 'officer',
     district: 'Bishkek',
     employeeId: ''
@@ -65,7 +65,7 @@ const Users = () => {
         fullName: '',
         email: '',
         password: '',
-        phoneNumber: '',
+        phone: '',
         role: 'officer',
         district: 'Bishkek',
         employeeId: ''
@@ -378,9 +378,11 @@ const Users = () => {
             </label>
             <input
               type="tel"
-              value={formData.phoneNumber}
-              onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="+996700000000"
+              required
             />
           </div>
 
