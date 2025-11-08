@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import {
   Home, Users, Activity, BarChart3, Settings, LogOut,
-  MapPin, Bell, UserCog, Building2, Map, CheckSquare, TrendingUp
+  MapPin, Bell, UserCog, Building2, Map, CheckSquare, TrendingUp, Zap, History, PieChart
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -11,10 +11,13 @@ const Sidebar = () => {
 
   const menuItems = [
     { path: '/dashboard', icon: Home, label: 'Главная', roles: ['all'] },
+    { path: '/enhanced-dashboard', icon: Zap, label: 'Пульс системы', roles: ['superadmin', 'central_admin', 'auditor', 'mru_manager', 'district_manager'] },
     { path: '/clients', icon: Users, label: 'Клиенты', roles: ['all'] },
     { path: '/sessions', icon: Activity, label: 'Рабочие сессии', roles: ['all'] },
     { path: '/analytics', icon: BarChart3, label: 'Аналитика', roles: ['all'] },
     { path: '/statistics', icon: TrendingUp, label: 'Статистика', roles: ['superadmin', 'central_admin', 'auditor'] },
+    { path: '/statistics-hub', icon: PieChart, label: 'Карта КР', roles: ['superadmin', 'central_admin', 'auditor', 'mru_manager', 'district_manager'] },
+    { path: '/audit-log', icon: History, label: 'История действий', roles: ['superadmin', 'central_admin', 'auditor'] },
     { path: '/approvals', icon: CheckSquare, label: 'Заявки', roles: ['superadmin', 'central_admin'] },
     { path: '/mru', icon: Building2, label: 'МРУ', roles: ['superadmin', 'central_admin'] },
     { path: '/districts', icon: Map, label: 'Районы', roles: ['superadmin', 'central_admin'] },

@@ -16,6 +16,9 @@ import MRUManagement from './pages/MRUManagement';
 import DistrictManagement from './pages/DistrictManagement';
 import Approvals from './pages/Approvals';
 import StatisticsDashboard from './pages/StatisticsDashboard';
+import EnhancedDashboard from './pages/EnhancedDashboard';
+import AuditLog from './pages/AuditLog';
+import StatisticsHub from './pages/StatisticsHub';
 
 // Protected Route wrapper
 const ProtectedRoute = ({ children }) => {
@@ -150,6 +153,30 @@ function AppContent() {
         element={
           <ProtectedRoute>
             <StatisticsDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/enhanced-dashboard"
+        element={
+          <ProtectedRoute>
+            <EnhancedDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/audit-log"
+        element={
+          <ProtectedRoute>
+            <AuditLog />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/statistics-hub"
+        element={
+          <ProtectedRoute>
+            <StatisticsHub />
           </ProtectedRoute>
         }
       />
