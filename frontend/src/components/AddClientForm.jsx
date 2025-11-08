@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { User, Mail, Phone, Hash, MapPin, Calendar, Clock, FileText } from 'lucide-react';
 import api from '../api/axios';
+import { districtsAPI } from '../api/api';
 
 const AddClientForm = ({ onClose, onSuccess, officers }) => {
   const [formData, setFormData] = useState({
@@ -9,15 +10,29 @@ const AddClientForm = ({ onClose, onSuccess, officers }) => {
     phone: '',
     email: '',
     password: '',
-    district: '',
+    districtId: '',
     assignedHours: '',
     startDate: '',
     officerId: '',
     workLocation: '',
     notes: ''
   });
+  const [districts, setDistricts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    fetchDistricts();
+  }, []);
+
+  const fetchDistricts = async () => {
+    try {
+      const response = await districtsAPI.getAllDistricts();
+      setDistricts(response.data || []);
+    } catch (error) {
+      console.error('Error fetching districts:', error);
+    }
+  };
 
   const handleChange = (e) => {
     setFormData({
@@ -158,20 +173,18 @@ const AddClientForm = ({ onClose, onSuccess, officers }) => {
             </div>
           </label>
           <select
-            name="district"
-            value={formData.district}
+            name="districtId"
+            value={formData.districtId}
             onChange={handleChange}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             required
           >
             <option value="">Выберите район</option>
-            <option value="Bishkek">Бишкек</option>
-            <option value="Osh">Ош</option>
-            <option value="Jalal-Abad">Джалал-Абад</option>
-            <option value="Karakol">Каракол</option>
-            <option value="Naryn">Нарын</option>
-            <option value="Talas">Талас</option>
-            <option value="Batken">Баткен</option>
+            {districts.map((district) => (
+              <option key={district.id} value={district.id}>
+                {district.name} ({district.mru?.name || 'МРУ не указано'})
+              </option>
+            ))}
           </select>
         </div>
 
