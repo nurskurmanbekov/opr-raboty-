@@ -49,11 +49,6 @@
           "cameraPermission": "Разрешите $(PRODUCT_NAME) доступ к вашей камере для фото-верификации работы."
         }
       ]
-    ],
-    "extra": {
-      "eas": {
-        "projectId": "probation-kg-mobile"
-      }
-    }
+    ]
   }
 }
