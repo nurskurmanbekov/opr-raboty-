@@ -1,17 +1,17 @@
 import { useState, useEffect } from 'react';
 import { MapPin, Plus, Edit, Trash2, AlertTriangle, Search } from 'lucide-react';
 import Layout from '../components/Layout';
-import { geofencesAPI } from '../api/api';
+import { geofencesAPI, districtsAPI, mrusAPI } from '../api/api';
 import Modal from '../components/Modal';
 import MapPicker from '../components/MapPicker';
 import { useAuth } from '../context/AuthContext';
-
-const DISTRICTS = ['Bishkek', 'Osh', 'Jalal-Abad', 'Karakol', 'Batken', 'Talas', 'Naryn'];
 
 const Geofences = () => {
   const { user: currentUser } = useAuth();
   const [geofences, setGeofences] = useState([]);
   const [violations, setViolations] = useState([]);
+  const [districts, setDistricts] = useState([]);
+  const [mrus, setMRUs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('geofences'); // 'geofences' or 'violations'
   const [searchTerm, setSearchTerm] = useState('');
@@ -24,13 +24,16 @@ const Geofences = () => {
     longitude: '',
     radius: 200,
     workLocation: '',
-    district: 'Bishkek',
+    districtId: '',
+    mruId: '',
     isActive: true
   });
 
   useEffect(() => {
     fetchGeofences();
     fetchViolations();
+    fetchDistricts();
+    fetchMRUs();
   }, []);
 
   const fetchGeofences = async () => {
@@ -52,6 +55,39 @@ const Geofences = () => {
     } catch (error) {
       console.error('Error fetching violations:', error);
     }
+  };
+
+  const fetchDistricts = async () => {
+    try {
+      const response = await districtsAPI.getAllDistricts();
+      setDistricts(response.data || []);
+    } catch (error) {
+      console.error('Error fetching districts:', error);
+    }
+  };
+
+  const fetchMRUs = async () => {
+    try {
+      const response = await mrusAPI.getAllMRUs();
+      setMRUs(response.data || []);
+    } catch (error) {
+      console.error('Error fetching MRUs:', error);
+    }
+  };
+
+  const getGeofenceLocation = (geofence) => {
+    if (geofence.assignedDistrict?.name) {
+      const mruName = geofence.assignedDistrict.mru?.name || '';
+      return `${geofence.assignedDistrict.name}${mruName ? ` (${mruName})` : ''}`;
+    }
+    if (geofence.assignedMru?.name) {
+      return `${geofence.assignedMru.name} (МРУ)`;
+    }
+    // Fallback to old district field
+    if (geofence.district) {
+      return geofence.district;
+    }
+    return 'Не указан';
   };
 
   const handleMapLocationChange = (lat, lng) => {
@@ -78,7 +114,8 @@ const Geofences = () => {
         longitude: '',
         radius: 200,
         workLocation: '',
-        district: 'Bishkek',
+        districtId: '',
+        mruId: '',
         isActive: true
       });
       fetchGeofences();
@@ -105,7 +142,8 @@ const Geofences = () => {
         longitude: '',
         radius: 200,
         workLocation: '',
-        district: 'Bishkek',
+        districtId: '',
+        mruId: '',
         isActive: true
       });
       fetchGeofences();
@@ -213,7 +251,7 @@ const Geofences = () => {
                       </div>
                       <div>
                         <h3 className="font-bold text-gray-800">{geofence.name}</h3>
-                        <p className="text-sm text-gray-500">{geofence.district}</p>
+                        <p className="text-sm text-gray-500">{getGeofenceLocation(geofence)}</p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -226,7 +264,8 @@ const Geofences = () => {
                               longitude: geofence.longitude,
                               radius: geofence.radius,
                               workLocation: geofence.workLocation,
-                              district: geofence.district,
+                              districtId: geofence.districtId || '',
+                              mruId: geofence.mruId || '',
                               isActive: geofence.isActive
                             });
                             setEditModal({ open: true, geofence });
@@ -365,7 +404,8 @@ const Geofences = () => {
             longitude: '',
             radius: 200,
             workLocation: '',
-            district: 'Bishkek',
+            districtId: '',
+            mruId: '',
             isActive: true
           });
         }}
@@ -468,13 +508,32 @@ const Geofences = () => {
               Район
             </label>
             <select
-              value={formData.district}
-              onChange={(e) => setFormData({ ...formData, district: e.target.value })}
+              value={formData.districtId}
+              onChange={(e) => setFormData({ ...formData, districtId: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              {DISTRICTS.map((district) => (
-                <option key={district} value={district}>
-                  {district}
+              <option value="">Выберите район</option>
+              {districts.map((district) => (
+                <option key={district.id} value={district.id}>
+                  {district.name} ({district.mru?.name || 'МРУ не указано'})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              МРУ (опционально)
+            </label>
+            <select
+              value={formData.mruId}
+              onChange={(e) => setFormData({ ...formData, mruId: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Не указано</option>
+              {mrus.map((mru) => (
+                <option key={mru.id} value={mru.id}>
+                  {mru.name}
                 </option>
               ))}
             </select>
@@ -522,7 +581,8 @@ const Geofences = () => {
             longitude: '',
             radius: 200,
             workLocation: '',
-            district: 'Bishkek',
+            districtId: '',
+            mruId: '',
             isActive: true
           });
         }}
@@ -625,13 +685,32 @@ const Geofences = () => {
               Район
             </label>
             <select
-              value={formData.district}
-              onChange={(e) => setFormData({ ...formData, district: e.target.value })}
+              value={formData.districtId}
+              onChange={(e) => setFormData({ ...formData, districtId: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              {DISTRICTS.map((district) => (
-                <option key={district} value={district}>
-                  {district}
+              <option value="">Выберите район</option>
+              {districts.map((district) => (
+                <option key={district.id} value={district.id}>
+                  {district.name} ({district.mru?.name || 'МРУ не указано'})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              МРУ (опционально)
+            </label>
+            <select
+              value={formData.mruId}
+              onChange={(e) => setFormData({ ...formData, mruId: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Не указано</option>
+              {mrus.map((mru) => (
+                <option key={mru.id} value={mru.id}>
+                  {mru.name}
                 </option>
               ))}
             </select>
@@ -667,7 +746,8 @@ const Geofences = () => {
                   longitude: '',
                   radius: 200,
                   workLocation: '',
-                  district: 'Bishkek',
+                  districtId: '',
+                  mruId: '',
                   isActive: true
                 });
               }}

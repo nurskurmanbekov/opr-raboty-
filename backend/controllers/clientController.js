@@ -1,11 +1,11 @@
-const { Client, User, WorkSession, Photo } = require('../models');
+const { Client, User, WorkSession, Photo, District, MRU } = require('../models');
 
 // @desc    Get all clients
 // @route   GET /api/clients
 // @access  Private
 exports.getClients = async (req, res, next) => {
   try {
-    const { status, district } = req.query;
+    const { status, district, districtId, mruId } = req.query;
 
     let whereClause = {};
 
@@ -16,9 +16,21 @@ exports.getClients = async (req, res, next) => {
 
     // District admin and officers can only see clients from their district
     if (req.user.role === 'district_admin' || req.user.role === 'officer') {
-      whereClause.district = req.user.district;
-    } else if (district) {
-      whereClause.district = district;
+      // Новая система - используем districtId
+      if (req.user.districtId) {
+        whereClause.districtId = req.user.districtId;
+      } else if (req.user.district) {
+        // Fallback для старой системы
+        whereClause.district = req.user.district;
+      }
+    } else {
+      // Фильтрация по параметрам запроса
+      if (districtId) {
+        whereClause.districtId = districtId;
+      } else if (district) {
+        // Поддержка старого параметра district (STRING)
+        whereClause.district = district;
+      }
     }
 
     // Officers can only see their assigned clients
@@ -33,6 +45,16 @@ exports.getClients = async (req, res, next) => {
           model: User,
           as: 'officer',
           attributes: ['id', 'fullName', 'email', 'phone']
+        },
+        {
+          model: District,
+          as: 'assignedDistrict',
+          attributes: ['id', 'name'],
+          include: [{
+            model: MRU,
+            as: 'mru',
+            attributes: ['id', 'name']
+          }]
         }
       ],
       order: [['createdAt', 'DESC']]

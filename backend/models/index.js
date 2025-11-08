@@ -105,6 +105,14 @@ User.belongsTo(District, { foreignKey: 'districtId', as: 'assignedDistrict' });
 District.hasMany(Client, { foreignKey: 'districtId', as: 'clients' });
 Client.belongsTo(District, { foreignKey: 'districtId', as: 'assignedDistrict' });
 
+// District -> Geofence (Район имеет много геозон)
+District.hasMany(Geofence, { foreignKey: 'districtId', as: 'geofences' });
+Geofence.belongsTo(District, { foreignKey: 'districtId', as: 'assignedDistrict' });
+
+// MRU -> Geofence (МРУ имеет много геозон)
+MRU.hasMany(Geofence, { foreignKey: 'mruId', as: 'geofences' });
+Geofence.belongsTo(MRU, { foreignKey: 'mruId', as: 'assignedMru' });
+
 // Client -> ClientAssignmentHistory (История переназначений клиента)
 Client.hasMany(ClientAssignmentHistory, { foreignKey: 'clientId', as: 'assignmentHistory' });
 ClientAssignmentHistory.belongsTo(Client, { foreignKey: 'clientId', as: 'client' });
