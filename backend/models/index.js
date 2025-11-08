@@ -101,6 +101,10 @@ User.belongsTo(MRU, { foreignKey: 'mruId', as: 'mru' });
 District.hasMany(User, { foreignKey: 'districtId', as: 'users' });
 User.belongsTo(District, { foreignKey: 'districtId', as: 'assignedDistrict' });
 
+// District -> Client (Район имеет много клиентов)
+District.hasMany(Client, { foreignKey: 'districtId', as: 'clients' });
+Client.belongsTo(District, { foreignKey: 'districtId', as: 'district' });
+
 // Client -> ClientAssignmentHistory (История переназначений клиента)
 Client.hasMany(ClientAssignmentHistory, { foreignKey: 'clientId', as: 'assignmentHistory' });
 ClientAssignmentHistory.belongsTo(Client, { foreignKey: 'clientId', as: 'client' });

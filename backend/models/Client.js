@@ -32,9 +32,21 @@ const Client = sequelize.define('Client', {
     type: DataTypes.STRING,
     allowNull: false
   },
+  // Старое поле district (для обратной совместимости)
   district: {
     type: DataTypes.STRING,
-    allowNull: false
+    allowNull: true,
+    comment: 'Устаревшее поле, используйте districtId'
+  },
+  // Новое поле districtId
+  districtId: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'Districts',
+      key: 'id'
+    },
+    comment: 'ID района из справочника'
   },
   assignedHours: {
     type: DataTypes.INTEGER,
