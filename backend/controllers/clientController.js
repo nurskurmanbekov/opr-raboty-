@@ -80,13 +80,23 @@ exports.getClient = async (req, res, next) => {
         {
           model: User,
           as: 'officer',
-          attributes: ['id', 'fullName', 'email', 'phone']
+          attributes: ['id', 'fullName', 'email', 'phone', 'districtId', 'mruId']
         },
         {
           model: WorkSession,
           as: 'workSessions',
           limit: 10,
           order: [['createdAt', 'DESC']]
+        },
+        {
+          model: District,
+          as: 'assignedDistrict',
+          attributes: ['id', 'name'],
+          include: [{
+            model: MRU,
+            as: 'mru',
+            attributes: ['id', 'name']
+          }]
         }
       ]
     });
@@ -98,18 +108,98 @@ exports.getClient = async (req, res, next) => {
       });
     }
 
-    // Check access
-    if (req.user.role === 'officer' && client.officerId !== req.user.id) {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to access this client'
+    // 🔒 SECURITY: Superadmin and central_admin can access all clients
+    if (req.user.role === 'superadmin' || req.user.role === 'central_admin') {
+      return res.json({
+        success: true,
+        data: client
       });
     }
 
-    res.json({
-      success: true,
-      data: client
+    // 🔒 SECURITY: Client can only access themselves
+    if (req.user.role === 'client') {
+      if (req.user.id !== req.params.id) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied'
+        });
+      }
+      return res.json({
+        success: true,
+        data: client
+      });
+    }
+
+    // 🔒 SECURITY: Officer can only access their assigned clients
+    if (req.user.role === 'officer') {
+      if (client.officerId !== req.user.id) {
+        return res.status(403).json({
+          success: false,
+          message: 'Not authorized to access this client'
+        });
+      }
+      return res.json({
+        success: true,
+        data: client
+      });
+    }
+
+    // 🔒 SECURITY: District admin can only access clients from their district
+    if (req.user.role === 'district_admin') {
+      if (!req.user.districtId) {
+        return res.status(403).json({
+          success: false,
+          message: 'District not assigned'
+        });
+      }
+
+      // Check client's district or officer's district
+      const clientDistrictId = client.districtId || client.officer?.districtId;
+
+      if (clientDistrictId !== req.user.districtId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: different district'
+        });
+      }
+
+      return res.json({
+        success: true,
+        data: client
+      });
+    }
+
+    // 🔒 SECURITY: Regional admin can only access clients from their MRU
+    if (req.user.role === 'regional_admin') {
+      if (!req.user.mruId) {
+        return res.status(403).json({
+          success: false,
+          message: 'MRU not assigned'
+        });
+      }
+
+      // Check through officer's MRU
+      const clientMruId = client.officer?.mruId;
+
+      if (clientMruId !== req.user.mruId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: different MRU'
+        });
+      }
+
+      return res.json({
+        success: true,
+        data: client
+      });
+    }
+
+    // 🔒 SECURITY: All other roles - deny access
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied'
     });
+
   } catch (error) {
     next(error);
   }
@@ -187,7 +277,13 @@ exports.createClient = async (req, res, next) => {
 // @access  Private
 exports.updateClient = async (req, res, next) => {
   try {
-    const client = await Client.findByPk(req.params.id);
+    const client = await Client.findByPk(req.params.id, {
+      include: [{
+        model: User,
+        as: 'officer',
+        attributes: ['id', 'districtId', 'mruId']
+      }]
+    });
 
     if (!client) {
       return res.status(404).json({
@@ -196,41 +292,169 @@ exports.updateClient = async (req, res, next) => {
       });
     }
 
-    // Check access
-    if (req.user.role === 'officer' && client.officerId !== req.user.id) {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to update this client'
+    // 🔒 SECURITY: Superadmin and central_admin can update all clients
+    if (req.user.role === 'superadmin' || req.user.role === 'central_admin') {
+      const {
+        fullName,
+        phone,
+        email,
+        status,
+        assignedHours,
+        workLocation,
+        notes,
+        endDate
+      } = req.body;
+
+      await client.update({
+        fullName,
+        phone,
+        email,
+        status,
+        assignedHours,
+        workLocation,
+        notes,
+        endDate
+      });
+
+      return res.json({
+        success: true,
+        message: 'Client updated successfully',
+        data: client
       });
     }
 
-    const {
-      fullName,
-      phone,
-      email,
-      status,
-      assignedHours,
-      workLocation,
-      notes,
-      endDate
-    } = req.body;
+    // 🔒 SECURITY: Officer can only update their assigned clients
+    if (req.user.role === 'officer') {
+      if (client.officerId !== req.user.id) {
+        return res.status(403).json({
+          success: false,
+          message: 'Not authorized to update this client'
+        });
+      }
 
-    await client.update({
-      fullName,
-      phone,
-      email,
-      status,
-      assignedHours,
-      workLocation,
-      notes,
-      endDate
+      const {
+        fullName,
+        phone,
+        email,
+        workLocation,
+        notes
+      } = req.body;
+
+      await client.update({
+        fullName,
+        phone,
+        email,
+        workLocation,
+        notes
+      });
+
+      return res.json({
+        success: true,
+        message: 'Client updated successfully',
+        data: client
+      });
+    }
+
+    // 🔒 SECURITY: District admin can only update clients from their district
+    if (req.user.role === 'district_admin') {
+      if (!req.user.districtId) {
+        return res.status(403).json({
+          success: false,
+          message: 'District not assigned'
+        });
+      }
+
+      const clientDistrictId = client.districtId || client.officer?.districtId;
+
+      if (clientDistrictId !== req.user.districtId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: different district'
+        });
+      }
+
+      const {
+        fullName,
+        phone,
+        email,
+        status,
+        assignedHours,
+        workLocation,
+        notes,
+        endDate
+      } = req.body;
+
+      await client.update({
+        fullName,
+        phone,
+        email,
+        status,
+        assignedHours,
+        workLocation,
+        notes,
+        endDate
+      });
+
+      return res.json({
+        success: true,
+        message: 'Client updated successfully',
+        data: client
+      });
+    }
+
+    // 🔒 SECURITY: Regional admin can only update clients from their MRU
+    if (req.user.role === 'regional_admin') {
+      if (!req.user.mruId) {
+        return res.status(403).json({
+          success: false,
+          message: 'MRU not assigned'
+        });
+      }
+
+      const clientMruId = client.officer?.mruId;
+
+      if (clientMruId !== req.user.mruId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: different MRU'
+        });
+      }
+
+      const {
+        fullName,
+        phone,
+        email,
+        status,
+        assignedHours,
+        workLocation,
+        notes,
+        endDate
+      } = req.body;
+
+      await client.update({
+        fullName,
+        phone,
+        email,
+        status,
+        assignedHours,
+        workLocation,
+        notes,
+        endDate
+      });
+
+      return res.json({
+        success: true,
+        message: 'Client updated successfully',
+        data: client
+      });
+    }
+
+    // 🔒 SECURITY: Clients cannot update themselves through this endpoint
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied'
     });
 
-    res.json({
-      success: true,
-      message: 'Client updated successfully',
-      data: client
-    });
   } catch (error) {
     next(error);
   }
@@ -282,13 +506,92 @@ exports.deleteClient = async (req, res, next) => {
 // @access  Private
 exports.getClientStats = async (req, res, next) => {
   try {
-    const client = await Client.findByPk(req.params.id);
+    const client = await Client.findByPk(req.params.id, {
+      include: [{
+        model: User,
+        as: 'officer',
+        attributes: ['id', 'districtId', 'mruId']
+      }]
+    });
 
     if (!client) {
       return res.status(404).json({
         success: false,
         message: 'Client not found'
       });
+    }
+
+    // 🔒 SECURITY: Check access rights before showing stats
+    const currentUser = req.user;
+
+    // Superadmin and central_admin can view all stats
+    if (currentUser.role !== 'superadmin' && currentUser.role !== 'central_admin') {
+
+      // Client can only view their own stats
+      if (currentUser.role === 'client') {
+        if (currentUser.id !== req.params.id) {
+          return res.status(403).json({
+            success: false,
+            message: 'Access denied'
+          });
+        }
+      }
+
+      // Officer can only view stats of their assigned clients
+      else if (currentUser.role === 'officer') {
+        if (client.officerId !== currentUser.id) {
+          return res.status(403).json({
+            success: false,
+            message: 'Not authorized to view this client\'s stats'
+          });
+        }
+      }
+
+      // District admin can only view stats from their district
+      else if (currentUser.role === 'district_admin') {
+        if (!currentUser.districtId) {
+          return res.status(403).json({
+            success: false,
+            message: 'District not assigned'
+          });
+        }
+
+        const clientDistrictId = client.districtId || client.officer?.districtId;
+
+        if (clientDistrictId !== currentUser.districtId) {
+          return res.status(403).json({
+            success: false,
+            message: 'Access denied: different district'
+          });
+        }
+      }
+
+      // Regional admin can only view stats from their MRU
+      else if (currentUser.role === 'regional_admin') {
+        if (!currentUser.mruId) {
+          return res.status(403).json({
+            success: false,
+            message: 'MRU not assigned'
+          });
+        }
+
+        const clientMruId = client.officer?.mruId;
+
+        if (clientMruId !== currentUser.mruId) {
+          return res.status(403).json({
+            success: false,
+            message: 'Access denied: different MRU'
+          });
+        }
+      }
+
+      // All other roles - deny access
+      else {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied'
+        });
+      }
     }
 
     const totalSessions = await WorkSession.count({

@@ -9,6 +9,22 @@ exports.startWorkSession = async (req, res, next) => {
   try {
     const { clientId, startLatitude, startLongitude, workLocation } = req.body;
 
+    // 🔒 SECURITY: Only clients can start sessions
+    if (req.user.role !== 'client') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only clients can start work sessions'
+      });
+    }
+
+    // 🔒 SECURITY: Client can only start session for themselves
+    if (clientId !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: cannot start session for another client'
+      });
+    }
+
     // Check if client has active session
     const activeSession = await WorkSession.findOne({
       where: {
@@ -59,6 +75,22 @@ exports.endWorkSession = async (req, res, next) => {
       });
     }
 
+    // 🔒 SECURITY: Only clients can end sessions
+    if (req.user.role !== 'client') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only clients can end work sessions'
+      });
+    }
+
+    // 🔒 SECURITY: Client can only end their own session
+    if (session.clientId !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: not your session'
+      });
+    }
+
     if (session.status !== 'in_progress') {
       return res.status(400).json({
         success: false,
@@ -95,8 +127,44 @@ exports.getWorkSessions = async (req, res, next) => {
     const { clientId, status, startDate, endDate } = req.query;
 
     let whereClause = {};
+    let clientWhereClause = {};
 
-    if (clientId) {
+    // 🔒 SECURITY: Filter sessions by user role
+    if (req.user.role === 'client') {
+      // Clients can only see their own sessions
+      whereClause.clientId = req.user.id;
+    } else if (req.user.role === 'officer') {
+      // Officers can only see sessions of their assigned clients
+      const officerClients = await Client.findAll({
+        where: { officerId: req.user.id },
+        attributes: ['id']
+      });
+      const clientIds = officerClients.map(c => c.id);
+      whereClause.clientId = { [Op.in]: clientIds };
+    } else if (req.user.role === 'district_admin') {
+      // District admins can only see sessions from their district
+      if (req.user.districtId) {
+        clientWhereClause.districtId = req.user.districtId;
+      } else if (req.user.district) {
+        // Fallback for old system
+        clientWhereClause.district = req.user.district;
+      }
+    } else if (req.user.role === 'regional_admin') {
+      // Regional admins can only see sessions from their MRU
+      if (req.user.mruId) {
+        // Need to filter through officer's MRU
+        const mruOfficers = await User.findAll({
+          where: { mruId: req.user.mruId, role: 'officer' },
+          attributes: ['id']
+        });
+        const officerIds = mruOfficers.map(o => o.id);
+        clientWhereClause.officerId = { [Op.in]: officerIds };
+      }
+    }
+    // superadmin and central_admin can see all sessions
+
+    // Apply query filters
+    if (clientId && req.user.role !== 'client') {
       whereClause.clientId = clientId;
     }
 
@@ -116,7 +184,14 @@ exports.getWorkSessions = async (req, res, next) => {
         {
           model: Client,
           as: 'client',
-          attributes: ['id', 'fullName', 'idNumber', 'district']
+          attributes: ['id', 'fullName', 'idNumber', 'district', 'districtId', 'officerId'],
+          where: Object.keys(clientWhereClause).length > 0 ? clientWhereClause : undefined,
+          required: Object.keys(clientWhereClause).length > 0,
+          include: [{
+            model: User,
+            as: 'officer',
+            attributes: ['id', 'fullName', 'districtId', 'mruId']
+          }]
         },
         {
           model: Photo,
@@ -146,7 +221,12 @@ exports.getWorkSession = async (req, res, next) => {
         {
           model: Client,
           as: 'client',
-          attributes: ['id', 'fullName', 'idNumber', 'district']
+          attributes: ['id', 'fullName', 'idNumber', 'district', 'districtId', 'officerId'],
+          include: [{
+            model: User,
+            as: 'officer',
+            attributes: ['id', 'fullName', 'districtId', 'mruId']
+          }]
         },
         {
           model: Photo,
@@ -166,6 +246,45 @@ exports.getWorkSession = async (req, res, next) => {
         message: 'Work session not found'
       });
     }
+
+    // 🔒 SECURITY: Check access rights
+    if (req.user.role === 'client') {
+      if (session.clientId !== req.user.id) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied'
+        });
+      }
+    } else if (req.user.role === 'officer') {
+      if (session.client?.officerId !== req.user.id) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: not your client'
+        });
+      }
+    } else if (req.user.role === 'district_admin') {
+      const clientDistrictId = session.client?.districtId || session.client?.officer?.districtId;
+      if (req.user.districtId && clientDistrictId !== req.user.districtId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: different district'
+        });
+      } else if (req.user.district && session.client?.district !== req.user.district) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: different district'
+        });
+      }
+    } else if (req.user.role === 'regional_admin') {
+      const clientMruId = session.client?.officer?.mruId;
+      if (req.user.mruId && clientMruId !== req.user.mruId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: different MRU'
+        });
+      }
+    }
+    // superadmin and central_admin can see all
 
     res.json({
       success: true,
@@ -205,6 +324,22 @@ exports.uploadPhoto = async (req, res, next) => {
       return res.status(404).json({
         success: false,
         message: 'Work session not found'
+      });
+    }
+
+    // 🔒 SECURITY: Only clients can upload photos
+    if (req.user.role !== 'client') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only clients can upload photos'
+      });
+    }
+
+    // 🔒 SECURITY: Client can only upload photos to their own session
+    if (session.clientId !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: not your session'
       });
     }
 
@@ -264,6 +399,22 @@ exports.updateLocation = async (req, res, next) => {
       return res.status(404).json({
         success: false,
         message: 'Work session not found'
+      });
+    }
+
+    // 🔒 SECURITY: Only clients can update location
+    if (req.user.role !== 'client') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only clients can update location'
+      });
+    }
+
+    // 🔒 SECURITY: Client can only update location for their own session
+    if (workSession.clientId !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: not your session'
       });
     }
 
