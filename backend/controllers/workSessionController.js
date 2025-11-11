@@ -9,18 +9,8 @@ exports.startWorkSession = async (req, res, next) => {
   try {
     const { clientId, startLatitude, startLongitude, workLocation } = req.body;
 
-    // 🔍 DEBUG: Log incoming data
-    console.log('🔍 START SESSION DEBUG:');
-    console.log('  clientId from body:', clientId);
-    console.log('  req.user.id:', req.user.id);
-    console.log('  req.user.role:', req.user.role);
-    console.log('  Are they equal?', clientId === req.user.id);
-    console.log('  clientId type:', typeof clientId);
-    console.log('  req.user.id type:', typeof req.user.id);
-
     // 🔒 SECURITY: Only clients can start sessions
     if (req.user.role !== 'client') {
-      console.log('❌ BLOCKED: Role is not client');
       return res.status(403).json({
         success: false,
         message: 'Only clients can start work sessions'
@@ -29,7 +19,6 @@ exports.startWorkSession = async (req, res, next) => {
 
     // 🔒 SECURITY: Client can only start session for themselves
     if (clientId !== req.user.id) {
-      console.log('❌ BLOCKED: clientId !== req.user.id');
       return res.status(403).json({
         success: false,
         message: 'Access denied: cannot start session for another client'

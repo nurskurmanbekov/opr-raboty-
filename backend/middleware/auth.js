@@ -30,10 +30,11 @@ exports.protect = async (req, res, next) => {
         user = await Client.findByPk(decoded.id, {
           attributes: { exclude: ['password'] }
         });
-        
+
         if (user) {
           // Add role 'client' if found in Clients table
           user.dataValues.role = 'client';
+          user.role = 'client'; // ✅ FIX: Also set role directly for easy access
         }
       }
 
