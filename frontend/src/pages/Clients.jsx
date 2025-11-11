@@ -100,7 +100,7 @@ const Clients = () => {
           <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
             Клиенты пробации
           </h1>
-          <p className="text-gray-600 mt-2">Управление клиентами и мониторинг прогресса</p>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">Управление клиентами и мониторинг прогресса</p>
         </div>
         <motion.button
           whileHover={{ scale: 1.05 }}
@@ -118,23 +118,23 @@ const Clients = () => {
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-white rounded-xl shadow-md p-6 mb-6"
+        className="bg-white dark:bg-slate-900 rounded-xl shadow-md p-6 mb-6"
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="relative">
-            <Search className="absolute left-3 top-3 text-gray-400" size={20} />
+            <Search className="absolute left-3 top-3 text-gray-400 dark:text-gray-500" size={20} />
             <input
               type="text"
               placeholder="Поиск по имени или ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
             />
           </div>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+            className="px-4 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
           >
             <option value="all">Все статусы</option>
             <option value="active">Активные</option>
@@ -149,17 +149,17 @@ const Clients = () => {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="bg-white p-6 rounded-xl shadow-md animate-pulse">
+            <div key={i} className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-md animate-pulse">
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
+                <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
                 <div className="flex-1">
-                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div>
+                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
                 </div>
               </div>
               <div className="space-y-2">
-                <div className="h-3 bg-gray-200 rounded w-full"></div>
-                <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
+                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-2/3"></div>
               </div>
             </div>
           ))}
@@ -172,9 +172,9 @@ const Clients = () => {
               animate={{ opacity: 1 }}
               className="text-center py-16"
             >
-              <UsersIcon className="mx-auto text-gray-300 mb-4" size={64} />
-              <h3 className="text-xl font-semibold text-gray-600 mb-2">Клиенты не найдены</h3>
-              <p className="text-gray-500 mb-6">Попробуйте изменить критерии поиска</p>
+              <UsersIcon className="mx-auto text-gray-300 dark:text-gray-600 mb-4" size={64} />
+              <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-400 mb-2">Клиенты не найдены</h3>
+              <p className="text-gray-500 dark:text-gray-500 mb-6">Попробуйте изменить критерии поиска</p>
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -197,7 +197,7 @@ const Clients = () => {
                     transition={{ delay: index * 0.05 }}
                     whileHover={{ y: -5, scale: 1.02 }}
                     onClick={() => navigate(`/clients/${client.id}`)}
-                    className="bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition-all border border-gray-100 cursor-pointer"
+                    className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-md hover:shadow-xl transition-all border border-gray-100 dark:border-gray-800 cursor-pointer"
                   >
                     {/* Header */}
                     <div className="flex items-center space-x-3 mb-4">
@@ -205,48 +205,48 @@ const Clients = () => {
                         <User className="text-white" size={24} />
                       </div>
                       <div className="flex-1">
-                        <p className="text-lg font-bold text-gray-800">{client.fullName}</p>
-                        <p className="text-xs text-gray-500">{client.email}</p>
+                        <p className="text-lg font-bold text-gray-800 dark:text-gray-100">{client.fullName}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{client.email}</p>
                       </div>
                     </div>
 
                     {/* Info */}
                     <div className="space-y-3 mb-4">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">ID:</span>
-                        <span className="text-sm text-gray-800 font-mono">{client.idNumber}</span>
+                        <span className="text-sm text-gray-600 dark:text-gray-400">ID:</span>
+                        <span className="text-sm text-gray-800 dark:text-gray-100 font-mono">{client.idNumber}</span>
                       </div>
 
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Район:</span>
-                        <span className="text-sm text-gray-800 flex items-center space-x-1">
-                          <MapPin size={14} className="text-gray-400" />
+                        <span className="text-sm text-gray-600 dark:text-gray-400">Район:</span>
+                        <span className="text-sm text-gray-800 dark:text-gray-100 flex items-center space-x-1">
+                          <MapPin size={14} className="text-gray-400 dark:text-gray-500" />
                           <span>{client.district}</span>
                         </span>
                       </div>
 
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Куратор:</span>
-                        <span className="text-sm text-gray-800">{client.officer?.fullName || 'Не назначен'}</span>
+                        <span className="text-sm text-gray-600 dark:text-gray-400">Куратор:</span>
+                        <span className="text-sm text-gray-800 dark:text-gray-100">{client.officer?.fullName || 'Не назначен'}</span>
                       </div>
 
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Статус:</span>
+                        <span className="text-sm text-gray-600 dark:text-gray-400">Статус:</span>
                         <span className={`px-3 py-1 rounded-full text-xs font-medium border ${statusConfig.badge}`}>
                           {statusConfig.label}
                         </span>
                       </div>
 
                       {/* Progress */}
-                      <div className="pt-3 border-t border-gray-100">
+                      <div className="pt-3 border-t border-gray-100 dark:border-gray-700">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm text-gray-600 flex items-center space-x-1">
-                            <Clock size={14} className="text-gray-400" />
+                          <span className="text-sm text-gray-600 dark:text-gray-400 flex items-center space-x-1">
+                            <Clock size={14} className="text-gray-400 dark:text-gray-500" />
                             <span>Прогресс</span>
                           </span>
-                          <span className="text-sm font-bold text-indigo-600">{progress}%</span>
+                          <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">{progress}%</span>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
                           <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${progress}%` }}
@@ -254,7 +254,7 @@ const Clients = () => {
                             className="bg-gradient-to-r from-indigo-600 to-purple-600 h-3 rounded-full"
                           />
                         </div>
-                        <p className="text-xs text-gray-500 mt-1 text-center">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-center">
                           {client.completedHours} / {client.assignedHours} часов
                         </p>
                       </div>
@@ -270,7 +270,7 @@ const Clients = () => {
                             e.stopPropagation();
                             setEditModal({ open: true, client });
                           }}
-                          className="flex-1 flex items-center justify-center space-x-1 bg-blue-50 text-blue-600 hover:bg-blue-100 py-2 rounded-lg transition"
+                          className="flex-1 flex items-center justify-center space-x-1 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900 py-2 rounded-lg transition"
                         >
                           <Edit size={16} />
                           <span className="text-sm">Изменить</span>
@@ -284,7 +284,7 @@ const Clients = () => {
                             e.stopPropagation();
                             setDeleteModal({ open: true, client });
                           }}
-                          className="flex items-center justify-center text-red-600 hover:bg-red-50 py-2 px-3 rounded-lg transition"
+                          className="flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 py-2 px-3 rounded-lg transition"
                         >
                           <Trash2 size={18} />
                         </motion.button>
@@ -333,10 +333,10 @@ const Clients = () => {
         title="Подтверждение удаления"
       >
         <div className="space-y-4">
-          <p className="text-gray-700">
+          <p className="text-gray-700 dark:text-gray-300">
             Вы действительно хотите удалить клиента <strong>{deleteModal.client?.fullName}</strong>?
           </p>
-          <p className="text-sm text-red-600">
+          <p className="text-sm text-red-600 dark:text-red-400">
             Это действие необратимо. Все данные клиента будут удалены из системы.
           </p>
           <div className="flex space-x-3 pt-4">
@@ -352,7 +352,7 @@ const Clients = () => {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => setDeleteModal({ open: false, client: null })}
-              className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition"
+              className="flex-1 bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-slate-600 transition"
             >
               Отмена
             </motion.button>

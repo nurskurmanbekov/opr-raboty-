@@ -85,20 +85,20 @@ const Dashboard = () => {
         <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
           Панель управления
         </h1>
-        <p className="text-gray-600 mt-2 text-lg">Добро пожаловать в систему мониторинга пробации</p>
+        <p className="text-gray-600 dark:text-gray-400 mt-2 text-lg">Добро пожаловать в систему мониторинга пробации</p>
       </motion.div>
 
       {/* Stats Cards */}
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="bg-white rounded-xl shadow-md p-6 animate-pulse">
+            <div key={i} className="bg-white dark:bg-slate-900 rounded-xl shadow-md p-6 animate-pulse">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-3"></div>
-                  <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-3"></div>
+                  <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
                 </div>
-                <div className="w-14 h-14 bg-gray-200 rounded-lg"></div>
+                <div className="w-14 h-14 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
               </div>
             </div>
           ))}
@@ -114,16 +114,16 @@ const Dashboard = () => {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ delay: card.delay, duration: 0.5 }}
                 whileHover={{ y: -8, scale: 1.03 }}
-                className="bg-white rounded-xl shadow-lg hover:shadow-2xl p-6 transition-all border border-gray-100"
+                className="bg-white dark:bg-slate-900 rounded-xl shadow-lg hover:shadow-2xl p-6 transition-all border border-gray-100 dark:border-gray-800"
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-600 text-sm font-medium">{card.title}</p>
+                    <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">{card.title}</p>
                     <motion.p
                       initial={{ opacity: 0, scale: 0 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: card.delay + 0.2, duration: 0.5 }}
-                      className="text-4xl font-bold text-gray-800 mt-2"
+                      className="text-4xl font-bold text-gray-800 dark:text-gray-100 mt-2"
                     >
                       {card.value}
                     </motion.p>
@@ -156,14 +156,14 @@ const Dashboard = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6 }}
-        className="mt-8 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-2xl p-8 border border-indigo-100"
+        className="mt-8 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-indigo-950 dark:via-purple-950 dark:to-pink-950 rounded-2xl p-8 border border-indigo-100 dark:border-indigo-900"
       >
         <div className="text-center">
           <motion.h2
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.7 }}
-            className="text-2xl font-bold text-gray-800 mb-3"
+            className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-3"
           >
             Система мониторинга работ пробации
           </motion.h2>
@@ -171,7 +171,7 @@ const Dashboard = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.8 }}
-            className="text-gray-600"
+            className="text-gray-600 dark:text-gray-400"
           >
             Используйте боковое меню для навигации по разделам системы
           </motion.p>
