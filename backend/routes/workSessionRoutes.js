@@ -34,8 +34,8 @@ router.get('/:id', canAccessWorkSession, getWorkSession);
 // 🔒 SECURITY: Get session route - check access rights
 router.get('/:id/route', canAccessWorkSession, getWorkSessionRoute);
 
-// 🔒 SECURITY: Upload photo - must own session
-router.post('/:id/photos', upload.single('photo'), mustOwnWorkSession, uploadPhoto);
+// 🔒 SECURITY: Upload photo - must own session (check ownership BEFORE uploading file!)
+router.post('/:id/photos', mustOwnWorkSession, upload.single('photo'), uploadPhoto);
 
 // 🔒 SECURITY: Verify session - only authorized roles
 router.put('/:id/verify', authorize('officer', 'district_admin', 'superadmin', 'central_admin'), canAccessWorkSession, verifyWorkSession);
