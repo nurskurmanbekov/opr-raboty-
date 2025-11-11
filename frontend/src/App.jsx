@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { ThemeProvider } from './contexts/ThemeContext';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Clients from './pages/Clients';
@@ -185,39 +185,57 @@ function AppContent() {
   );
 }
 
+// Toaster wrapper that uses theme
+function ThemedToaster() {
+  const { theme, isDark } = useTheme();
+
+  return (
+    <Toaster
+      position="top-right"
+      toastOptions={{
+        duration: 4000,
+        style: {
+          background: isDark ? '#1e1e1e' : '#363636',
+          color: isDark ? 'rgba(255, 255, 255, 0.87)' : '#fff',
+          borderRadius: '10px',
+          padding: '16px',
+          fontSize: '14px',
+          border: isDark ? '1px solid rgba(255, 255, 255, 0.12)' : 'none',
+        },
+        success: {
+          duration: 3000,
+          iconTheme: {
+            primary: '#10b981',
+            secondary: isDark ? '#1e1e1e' : '#fff',
+          },
+        },
+        error: {
+          duration: 4000,
+          iconTheme: {
+            primary: '#ef4444',
+            secondary: isDark ? '#1e1e1e' : '#fff',
+          },
+        },
+      }}
+    />
+  );
+}
+
+function AppWithToaster() {
+  return (
+    <>
+      <AppContent />
+      <ThemedToaster />
+    </>
+  );
+}
+
 function App() {
   return (
     <Router>
       <ThemeProvider>
         <AuthProvider>
-          <AppContent />
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              duration: 4000,
-              style: {
-                background: '#363636',
-                color: '#fff',
-                borderRadius: '10px',
-                padding: '16px',
-                fontSize: '14px',
-              },
-              success: {
-                duration: 3000,
-                iconTheme: {
-                  primary: '#10b981',
-                  secondary: '#fff',
-                },
-              },
-              error: {
-                duration: 4000,
-                iconTheme: {
-                  primary: '#ef4444',
-                  secondary: '#fff',
-                },
-              },
-            }}
-          />
+          <AppWithToaster />
         </AuthProvider>
       </ThemeProvider>
     </Router>
