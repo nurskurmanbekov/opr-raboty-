@@ -15,7 +15,8 @@ const upload = require('../middleware/upload');
 
 router.use(protect); // All routes need authentication
 
-router.post('/start', startWorkSession);
+// ⭐ КРИТИЧНО: Face ID фото обязательно для старта сессии
+router.post('/start', upload.single('photo'), startWorkSession);
 router.put('/:id/end', endWorkSession);
 router.post('/:id/location', updateLocation);
 router.get('/', getWorkSessions);
