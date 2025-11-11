@@ -14,11 +14,11 @@ const upload = require('../middleware/upload');
  * @route   POST /api/face-verification/register
  * @desc    Регистрация Face ID клиента
  * @access  Private (Client or Admin)
+ * @note    Upload middleware is handled inside controller (expects 'faceImage' field)
  */
 router.post(
   '/register',
   protect,
-  upload.single('photo'),
   registerFace
 );
 
@@ -26,11 +26,11 @@ router.post(
  * @route   POST /api/face-verification/verify
  * @desc    Верификация лица при старте рабочей сессии
  * @access  Private (Client)
+ * @note    Upload middleware is handled inside controller (expects 'faceImage' field)
  */
 router.post(
   '/verify',
   protect,
-  upload.single('photo'),
   verifyFace
 );
 

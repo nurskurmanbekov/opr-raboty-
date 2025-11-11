@@ -19,7 +19,7 @@ module.exports = {
     await queryInterface.addColumn('WorkSessions', 'faceVerificationAttemptId', {
       type: Sequelize.UUID,
       allowNull: true,
-      comment: 'Reference to FaceVerificationAttempt record'
+      comment: 'Reference to FaceVerification record'
     });
 
     await queryInterface.addColumn('WorkSessions', 'biometricType', {

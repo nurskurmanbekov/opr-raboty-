@@ -1,4 +1,4 @@
-const { WorkSession, Client, Photo, User, LocationHistory, FaceVerification, FaceVerificationAttempt } = require('../models');
+const { WorkSession, Client, Photo, User, LocationHistory, FaceVerification } = require('../models');
 const { Op } = require('sequelize');
 const path = require('path');
 const faceRecognitionService = require('../services/faceRecognitionService');
@@ -36,7 +36,11 @@ exports.startWorkSession = async (req, res, next) => {
 
     // ⭐ КРИТИЧНО: Проверка Face ID зарегистрирован ли
     const faceVerification = await FaceVerification.findOne({
-      where: { clientId: clientId, isRegistered: true }
+      where: {
+        userId: clientId,
+        verificationType: 'registration',
+        verificationStatus: 'verified'
+      }
     });
 
     if (!faceVerification) {
@@ -67,19 +71,22 @@ exports.startWorkSession = async (req, res, next) => {
     const verificationPhotoUrl = `/uploads/sessions/${verificationPhotoFilename}`;
 
     // Создать запись о попытке верификации
-    const verificationAttempt = await FaceVerificationAttempt.create({
-      clientId: clientId,
-      verified: verificationResult.verified,
-      similarity: verificationResult.similarity,
-      confidence: verificationResult.confidence,
-      matchedClientId: verificationResult.matchedClientId,
-      timestamp: new Date(),
+    const verificationAttempt = await FaceVerification.create({
+      userId: clientId,
+      faceImageUrl: verificationPhotoUrl,
+      verificationType: 'check_in',
+      verificationStatus: verificationResult.verified ? 'verified' : 'failed',
+      matchScore: verificationResult.similarity,
+      matchThreshold: verificationResult.threshold || 0.85,
+      isMatch: verificationResult.verified,
       metadata: {
         age: verificationResult.age,
         gender: verificationResult.gender,
         boundingBox: verificationResult.boundingBox,
-        context: 'work_session_start'
-      }
+        context: 'work_session_start',
+        confidence: verificationResult.confidence
+      },
+      verifiedAt: verificationResult.verified ? new Date() : null
     });
 
     // ⚠️ КРИТИЧНО: Если Face ID НЕ ПРОШЕЛ - ЗАПРЕТИТЬ старт!

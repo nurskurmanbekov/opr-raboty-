@@ -81,7 +81,7 @@ const WorkSession = sequelize.define('WorkSession', {
   faceVerificationAttemptId: {
     type: DataTypes.UUID,
     allowNull: true,
-    comment: 'Reference to FaceVerificationAttempt record'
+    comment: 'Reference to FaceVerification record'
   },
   biometricType: {
     type: DataTypes.STRING(50),
