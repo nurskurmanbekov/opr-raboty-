@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTheme } from '../hooks/useTheme';
 import api from '../api/axios';
 import Button from '../components/Button';
 
@@ -18,6 +19,7 @@ const HomeScreen = ({ navigation }) => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const { colors } = useTheme();
 
   useEffect(() => {
     loadData();
@@ -67,8 +69,8 @@ const HomeScreen = ({ navigation }) => {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <Text>Загрузка...</Text>
+      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <Text style={{ color: colors.text }}>Загрузка...</Text>
       </SafeAreaView>
     );
   }
@@ -76,46 +78,46 @@ const HomeScreen = ({ navigation }) => {
   const progress = stats ? (stats.completedHours / stats.assignedHours * 100).toFixed(1) : 0;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.primary }]} edges={['top']}>
       <ScrollView
-        style={styles.scrollView}
+        style={[styles.scrollView, { backgroundColor: colors.background }]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <View style={styles.header}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
+        <View style={[styles.header, { backgroundColor: colors.primary }]}>
+        <View style={[styles.avatar, { backgroundColor: colors.avatar }]}>
+          <Text style={[styles.avatarText, { color: colors.textOnPrimary }]}>
             {user?.fullName?.charAt(0)}
           </Text>
         </View>
-        <Text style={styles.name}>{user?.fullName}</Text>
-        <Text style={styles.district}>{user?.district}</Text>
+        <Text style={[styles.name, { color: colors.textOnPrimary }]}>{user?.fullName}</Text>
+        <Text style={[styles.district, { color: colors.textLight }]}>{user?.district}</Text>
       </View>
 
       {/* Progress Card */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Прогресс выполнения</Text>
+      <View style={[styles.card, { backgroundColor: colors.card }]}>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Прогресс выполнения</Text>
         <View style={styles.progressInfo}>
-          <Text style={styles.progressText}>
+          <Text style={[styles.progressText, { color: colors.textSecondary }]}>
             {stats?.completedHours || 0} / {stats?.assignedHours || 0} часов
           </Text>
-          <Text style={styles.progressPercent}>{progress}%</Text>
+          <Text style={[styles.progressPercent, { color: colors.primary }]}>{progress}%</Text>
         </View>
-        <View style={styles.progressBar}>
-          <View style={[styles.progressFill, { width: `${progress}%` }]} />
+        <View style={[styles.progressBar, { backgroundColor: colors.progressBar }]}>
+          <View style={[styles.progressFill, { width: `${progress}%`, backgroundColor: colors.progressFill }]} />
         </View>
       </View>
 
       {/* Stats Cards */}
       <View style={styles.statsGrid}>
-        <View style={[styles.statCard, { backgroundColor: '#dbeafe' }]}>
-          <Text style={styles.statValue}>{stats?.totalSessions || 0}</Text>
-          <Text style={styles.statLabel}>Всего сессий</Text>
+        <View style={[styles.statCard, { backgroundColor: colors.statBlue }]}>
+          <Text style={[styles.statValue, { color: colors.text }]}>{stats?.totalSessions || 0}</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Всего сессий</Text>
         </View>
-        <View style={[styles.statCard, { backgroundColor: '#d1fae5' }]}>
-          <Text style={styles.statValue}>{stats?.completedSessions || 0}</Text>
-          <Text style={styles.statLabel}>Завершено</Text>
+        <View style={[styles.statCard, { backgroundColor: colors.statGreen }]}>
+          <Text style={[styles.statValue, { color: colors.text }]}>{stats?.completedSessions || 0}</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Завершено</Text>
         </View>
       </View>
 
@@ -126,12 +128,12 @@ const HomeScreen = ({ navigation }) => {
           onPress={() => navigation.navigate('WorkSession')}
           style={styles.actionButton}
         />
-        
+
         <TouchableOpacity
-          style={styles.logoutButton}
+          style={[styles.logoutButton, { borderColor: colors.error }]}
           onPress={handleLogout}
         >
-          <Text style={styles.logoutText}>Выйти</Text>
+          <Text style={[styles.logoutText, { color: colors.error }]}>Выйти</Text>
         </TouchableOpacity>
       </View>
       </ScrollView>
@@ -142,20 +144,16 @@ const HomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#3b82f6',
   },
   scrollView: {
     flex: 1,
-    backgroundColor: '#f3f4f6',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f3f4f6',
   },
   header: {
-    backgroundColor: '#3b82f6',
     padding: 24,
     alignItems: 'center',
     borderBottomLeftRadius: 24,
@@ -165,7 +163,6 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#1d4ed8',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
@@ -173,20 +170,16 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#fff',
   },
   name: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#fff',
     marginBottom: 4,
   },
   district: {
     fontSize: 16,
-    color: '#bfdbfe',
   },
   card: {
-    backgroundColor: '#fff',
     margin: 16,
     padding: 20,
     borderRadius: 16,
@@ -199,7 +192,6 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1f2937',
     marginBottom: 16,
   },
   progressInfo: {
@@ -210,22 +202,18 @@ const styles = StyleSheet.create({
   },
   progressText: {
     fontSize: 16,
-    color: '#6b7280',
   },
   progressPercent: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#3b82f6',
   },
   progressBar: {
     height: 12,
-    backgroundColor: '#e5e7eb',
     borderRadius: 6,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#3b82f6',
     borderRadius: 6,
   },
   statsGrid: {
@@ -242,12 +230,10 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#1f2937',
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 14,
-    color: '#6b7280',
   },
   actions: {
     padding: 16,
@@ -261,10 +247,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#ef4444',
   },
   logoutText: {
-    color: '#ef4444',
     fontSize: 16,
     fontWeight: '600',
   },

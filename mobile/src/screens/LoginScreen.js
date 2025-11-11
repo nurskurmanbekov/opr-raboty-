@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTheme } from '../hooks/useTheme';
 import api from '../api/axios';
 import Button from '../components/Button';
 
@@ -18,6 +19,7 @@ const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const { colors } = useTheme();
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -59,22 +61,27 @@ const LoginScreen = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.header}>
-          <Text style={styles.title}>Пробация КР</Text>
-          <Text style={styles.subtitle}>Мобильное приложение для клиентов</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Пробация КР</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Мобильное приложение для клиентов</Text>
         </View>
 
-        <View style={styles.form}>
-          <Text style={styles.label}>Email</Text>
+        <View style={[styles.form, { backgroundColor: colors.card }]}>
+          <Text style={[styles.label, { color: colors.text }]}>Email</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, {
+              borderColor: colors.border,
+              backgroundColor: colors.backgroundSecondary,
+              color: colors.text
+            }]}
             placeholder="your@email.com"
+            placeholderTextColor={colors.textTertiary}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -82,10 +89,15 @@ const LoginScreen = ({ navigation }) => {
             autoCorrect={false}
           />
 
-          <Text style={styles.label}>Пароль</Text>
+          <Text style={[styles.label, { color: colors.text }]}>Пароль</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, {
+              borderColor: colors.border,
+              backgroundColor: colors.backgroundSecondary,
+              color: colors.text
+            }]}
             placeholder="••••••"
+            placeholderTextColor={colors.textTertiary}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -99,10 +111,10 @@ const LoginScreen = ({ navigation }) => {
             style={styles.button}
           />
 
-          <View style={styles.testData}>
-            <Text style={styles.testDataTitle}>Тестовые данные:</Text>
-            <Text style={styles.testDataText}>Email: client1@probation.kg</Text>
-            <Text style={styles.testDataText}>Пароль: 123456</Text>
+          <View style={[styles.testData, { backgroundColor: colors.backgroundTertiary }]}>
+            <Text style={[styles.testDataTitle, { color: colors.textSecondary }]}>Тестовые данные:</Text>
+            <Text style={[styles.testDataText, { color: colors.textSecondary }]}>Email: client1@probation.kg</Text>
+            <Text style={[styles.testDataText, { color: colors.textSecondary }]}>Пароль: 123456</Text>
           </View>
         </View>
         </ScrollView>
@@ -114,7 +126,6 @@ const LoginScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f3f4f6',
   },
   container: {
     flex: 1,
@@ -131,16 +142,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#1f2937',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#6b7280',
     textAlign: 'center',
   },
   form: {
-    backgroundColor: '#fff',
     borderRadius: 16,
     padding: 24,
     shadowColor: '#000',
@@ -152,18 +160,15 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
     marginBottom: 8,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#d1d5db',
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 16,
     fontSize: 16,
     marginBottom: 16,
-    backgroundColor: '#fff',
   },
   button: {
     marginTop: 8,
@@ -171,18 +176,15 @@ const styles = StyleSheet.create({
   testData: {
     marginTop: 24,
     padding: 16,
-    backgroundColor: '#f9fafb',
     borderRadius: 8,
   },
   testDataTitle: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6b7280',
     marginBottom: 8,
   },
   testDataText: {
     fontSize: 12,
-    color: '#6b7280',
     marginBottom: 4,
   },
 });

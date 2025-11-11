@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTheme } from '../hooks/useTheme';
 import { profileAPI, syncAPI } from '../api/api';
 import Button from '../components/Button';
 
@@ -18,6 +19,7 @@ const ProfileScreen = ({ navigation }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [syncStats, setSyncStats] = useState(null);
+  const { colors, isDark, toggleTheme, themePreference, setTheme } = useTheme();
   const [profileData, setProfileData] = useState({
     fullName: '',
     phoneNumber: '',
@@ -140,25 +142,25 @@ const ProfileScreen = ({ navigation }) => {
 
   if (!user) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <Text>Загрузка...</Text>
+      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <Text style={{ color: colors.text }}>Загрузка...</Text>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView style={styles.scrollView}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.primary }]} edges={['top']}>
+      <ScrollView style={[styles.scrollView, { backgroundColor: colors.background }]}>
         {/* Profile Header */}
-        <View style={styles.header}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{user.fullName?.charAt(0)}</Text>
+        <View style={[styles.header, { backgroundColor: colors.primary }]}>
+        <View style={[styles.avatar, { backgroundColor: colors.avatar }]}>
+          <Text style={[styles.avatarText, { color: colors.textOnPrimary }]}>{user.fullName?.charAt(0)}</Text>
         </View>
-        <Text style={styles.name}>{user.fullName}</Text>
-        <Text style={styles.email}>{user.email}</Text>
+        <Text style={[styles.name, { color: colors.textOnPrimary }]}>{user.fullName}</Text>
+        <Text style={[styles.email, { color: colors.textLight }]}>{user.email}</Text>
         {user.district && (
-          <View style={styles.districtBadge}>
-            <Text style={styles.districtText}>📍 {user.district}</Text>
+          <View style={[styles.districtBadge, { backgroundColor: colors.overlayLight }]}>
+            <Text style={[styles.districtText, { color: colors.textOnPrimary }]}>📍 {user.district}</Text>
           </View>
         )}
       </View>
@@ -166,48 +168,58 @@ const ProfileScreen = ({ navigation }) => {
       {/* Profile Information */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Личные данные</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Личные данные</Text>
           {!isEditing ? (
             <TouchableOpacity onPress={() => setIsEditing(true)}>
-              <Text style={styles.editButton}>Редактировать</Text>
+              <Text style={[styles.editButton, { color: colors.primary }]}>Редактировать</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity onPress={() => setIsEditing(false)}>
-              <Text style={styles.cancelButton}>Отмена</Text>
+              <Text style={[styles.cancelButton, { color: colors.error }]}>Отмена</Text>
             </TouchableOpacity>
           )}
         </View>
 
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: colors.card }]}>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Полное имя</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Полное имя</Text>
             {isEditing ? (
               <TextInput
-                style={styles.input}
+                style={[styles.input, {
+                  borderColor: colors.border,
+                  backgroundColor: colors.backgroundSecondary,
+                  color: colors.text
+                }]}
+                placeholderTextColor={colors.textTertiary}
                 value={profileData.fullName}
                 onChangeText={(text) => setProfileData({ ...profileData, fullName: text })}
               />
             ) : (
-              <Text style={styles.value}>{user.fullName}</Text>
+              <Text style={[styles.value, { color: colors.text }]}>{user.fullName}</Text>
             )}
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email</Text>
-            <Text style={styles.value}>{user.email}</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Email</Text>
+            <Text style={[styles.value, { color: colors.text }]}>{user.email}</Text>
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Телефон</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Телефон</Text>
             {isEditing ? (
               <TextInput
-                style={styles.input}
+                style={[styles.input, {
+                  borderColor: colors.border,
+                  backgroundColor: colors.backgroundSecondary,
+                  color: colors.text
+                }]}
+                placeholderTextColor={colors.textTertiary}
                 value={profileData.phoneNumber}
                 onChangeText={(text) => setProfileData({ ...profileData, phoneNumber: text })}
                 keyboardType="phone-pad"
               />
             ) : (
-              <Text style={styles.value}>{user.phoneNumber || 'Не указан'}</Text>
+              <Text style={[styles.value, { color: colors.text }]}>{user.phoneNumber || 'Не указан'}</Text>
             )}
           </View>
 
@@ -221,14 +233,81 @@ const ProfileScreen = ({ navigation }) => {
         </View>
       </View>
 
+      {/* Theme Settings */}
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Тема оформления</Text>
+        <View style={[styles.card, { backgroundColor: colors.card }]}>
+          <View style={styles.themeOptions}>
+            <TouchableOpacity
+              style={[
+                styles.themeOption,
+                { borderColor: colors.border },
+                themePreference === 'light' && { borderColor: colors.primary, backgroundColor: colors.infoLight }
+              ]}
+              onPress={() => setTheme('light')}
+            >
+              <Text style={[styles.themeIcon, { fontSize: 32 }]}>☀️</Text>
+              <Text style={[styles.themeLabel, { color: colors.text }]}>Светлая</Text>
+              {themePreference === 'light' && (
+                <View style={[styles.checkmark, { backgroundColor: colors.primary }]}>
+                  <Text style={{ color: colors.textOnPrimary, fontSize: 12 }}>✓</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.themeOption,
+                { borderColor: colors.border },
+                themePreference === 'dark' && { borderColor: colors.primary, backgroundColor: colors.infoLight }
+              ]}
+              onPress={() => setTheme('dark')}
+            >
+              <Text style={[styles.themeIcon, { fontSize: 32 }]}>🌙</Text>
+              <Text style={[styles.themeLabel, { color: colors.text }]}>Темная</Text>
+              {themePreference === 'dark' && (
+                <View style={[styles.checkmark, { backgroundColor: colors.primary }]}>
+                  <Text style={{ color: colors.textOnPrimary, fontSize: 12 }}>✓</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.themeOption,
+                { borderColor: colors.border },
+                themePreference === 'system' && { borderColor: colors.primary, backgroundColor: colors.infoLight }
+              ]}
+              onPress={() => setTheme('system')}
+            >
+              <Text style={[styles.themeIcon, { fontSize: 32 }]}>⚙️</Text>
+              <Text style={[styles.themeLabel, { color: colors.text }]}>Системная</Text>
+              {themePreference === 'system' && (
+                <View style={[styles.checkmark, { backgroundColor: colors.primary }]}>
+                  <Text style={{ color: colors.textOnPrimary, fontSize: 12 }}>✓</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+          <Text style={[styles.themeHint, { color: colors.textSecondary }]}>
+            Текущая тема: {isDark ? 'Темная' : 'Светлая'}
+          </Text>
+        </View>
+      </View>
+
       {/* Change Password */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Изменить пароль</Text>
-        <View style={styles.card}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Изменить пароль</Text>
+        <View style={[styles.card, { backgroundColor: colors.card }]}>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Текущий пароль</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Текущий пароль</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, {
+                borderColor: colors.border,
+                backgroundColor: colors.backgroundSecondary,
+                color: colors.text
+              }]}
+              placeholderTextColor={colors.textTertiary}
               value={passwordData.currentPassword}
               onChangeText={(text) => setPasswordData({ ...passwordData, currentPassword: text })}
               secureTextEntry
@@ -237,9 +316,14 @@ const ProfileScreen = ({ navigation }) => {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Новый пароль</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Новый пароль</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, {
+                borderColor: colors.border,
+                backgroundColor: colors.backgroundSecondary,
+                color: colors.text
+              }]}
+              placeholderTextColor={colors.textTertiary}
               value={passwordData.newPassword}
               onChangeText={(text) => setPasswordData({ ...passwordData, newPassword: text })}
               secureTextEntry
@@ -248,9 +332,14 @@ const ProfileScreen = ({ navigation }) => {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Подтвердите пароль</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Подтвердите пароль</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, {
+                borderColor: colors.border,
+                backgroundColor: colors.backgroundSecondary,
+                color: colors.text
+              }]}
+              placeholderTextColor={colors.textTertiary}
               value={passwordData.confirmPassword}
               onChangeText={(text) => setPasswordData({ ...passwordData, confirmPassword: text })}
               secureTextEntry
@@ -270,19 +359,19 @@ const ProfileScreen = ({ navigation }) => {
       {/* Sync Status */}
       {syncStats && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Синхронизация</Text>
-          <View style={styles.card}>
-            <View style={styles.statRow}>
-              <Text style={styles.statLabel}>Ожидают синхронизации:</Text>
-              <Text style={styles.statValue}>{syncStats.pending || 0}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Синхронизация</Text>
+          <View style={[styles.card, { backgroundColor: colors.card }]}>
+            <View style={[styles.statRow, { borderBottomColor: colors.background }]}>
+              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Ожидают синхронизации:</Text>
+              <Text style={[styles.statValue, { color: colors.text }]}>{syncStats.pending || 0}</Text>
             </View>
-            <View style={styles.statRow}>
-              <Text style={styles.statLabel}>Завершено:</Text>
-              <Text style={styles.statValue}>{syncStats.completed || 0}</Text>
+            <View style={[styles.statRow, { borderBottomColor: colors.background }]}>
+              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Завершено:</Text>
+              <Text style={[styles.statValue, { color: colors.text }]}>{syncStats.completed || 0}</Text>
             </View>
-            <View style={styles.statRow}>
-              <Text style={styles.statLabel}>Ошибки:</Text>
-              <Text style={[styles.statValue, styles.errorValue]}>{syncStats.failed || 0}</Text>
+            <View style={[styles.statRow, { borderBottomColor: colors.background }]}>
+              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Ошибки:</Text>
+              <Text style={[styles.statValue, styles.errorValue, { color: colors.error }]}>{syncStats.failed || 0}</Text>
             </View>
 
             {(syncStats.pending > 0 || syncStats.failed > 0) && (
@@ -290,7 +379,7 @@ const ProfileScreen = ({ navigation }) => {
                 title="Синхронизировать сейчас"
                 onPress={handleSyncNow}
                 loading={loading}
-                style={styles.syncButton}
+                style={[styles.syncButton, { backgroundColor: colors.success }]}
               />
             )}
           </View>
@@ -299,8 +388,14 @@ const ProfileScreen = ({ navigation }) => {
 
       {/* Logout Button */}
       <View style={styles.section}>
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutText}>Выйти из аккаунта</Text>
+        <TouchableOpacity
+          style={[styles.logoutButton, {
+            backgroundColor: colors.card,
+            borderColor: colors.error
+          }]}
+          onPress={handleLogout}
+        >
+          <Text style={[styles.logoutText, { color: colors.error }]}>Выйти из аккаунта</Text>
         </TouchableOpacity>
       </View>
 
@@ -313,20 +408,16 @@ const ProfileScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#3b82f6',
   },
   scrollView: {
     flex: 1,
-    backgroundColor: '#f3f4f6',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f3f4f6',
   },
   header: {
-    backgroundColor: '#3b82f6',
     padding: 24,
     alignItems: 'center',
     borderBottomLeftRadius: 24,
@@ -336,7 +427,6 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#1d4ed8',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
@@ -344,27 +434,22 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#fff',
   },
   name: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#fff',
     marginBottom: 4,
   },
   email: {
     fontSize: 14,
-    color: '#bfdbfe',
     marginBottom: 8,
   },
   districtBadge: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
     paddingHorizontal: 16,
     paddingVertical: 6,
     borderRadius: 20,
   },
   districtText: {
-    color: '#fff',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -381,21 +466,17 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1f2937',
     marginBottom: 12,
   },
   editButton: {
-    color: '#3b82f6',
     fontSize: 14,
     fontWeight: '600',
   },
   cancelButton: {
-    color: '#ef4444',
     fontSize: 14,
     fontWeight: '600',
   },
   card: {
-    backgroundColor: '#fff',
     padding: 16,
     borderRadius: 12,
     shadowColor: '#000',
@@ -410,56 +491,80 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6b7280',
     marginBottom: 8,
   },
   value: {
     fontSize: 16,
-    color: '#1f2937',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#d1d5db',
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    color: '#1f2937',
   },
   statRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
   },
   statLabel: {
     fontSize: 14,
-    color: '#6b7280',
   },
   statValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1f2937',
   },
   errorValue: {
-    color: '#ef4444',
   },
   syncButton: {
     marginTop: 16,
-    backgroundColor: '#10b981',
   },
   logoutButton: {
-    backgroundColor: '#fff',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#ef4444',
   },
   logoutText: {
-    color: '#ef4444',
     fontSize: 16,
     fontWeight: '600',
+  },
+  themeOptions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 16,
+  },
+  themeOption: {
+    flex: 1,
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    position: 'relative',
+  },
+  themeIcon: {
+    marginBottom: 8,
+  },
+  themeLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  checkmark: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  themeHint: {
+    fontSize: 12,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 });
 
