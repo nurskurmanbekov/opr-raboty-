@@ -7,11 +7,13 @@ import {
   TouchableOpacity,
   Alert,
   TextInput,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../hooks/useTheme';
-import { profileAPI, syncAPI } from '../api/api';
+import { profileAPI, syncAPI, faceVerificationAPI } from '../api/api';
 import Button from '../components/Button';
 
 const ProfileScreen = ({ navigation }) => {
@@ -19,6 +21,8 @@ const ProfileScreen = ({ navigation }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [syncStats, setSyncStats] = useState(null);
+  const [faceIdRegistered, setFaceIdRegistered] = useState(false);
+  const [faceIdSelfie, setFaceIdSelfie] = useState(null);
   const { colors, isDark, toggleTheme, themePreference, setTheme } = useTheme();
   const [profileData, setProfileData] = useState({
     fullName: '',
@@ -104,6 +108,79 @@ const ProfileScreen = ({ navigation }) => {
       Alert.alert('Успех', 'Пароль изменен');
     } catch (error) {
       Alert.alert('Ошибка', 'Неверный текущий пароль');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTakeFaceIdSelfie = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Ошибка', 'Необходимо разрешение на использование камеры для Face ID');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [3, 4],
+        quality: 0.8,
+        cameraType: ImagePicker.CameraType.front,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setFaceIdSelfie(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Face ID selfie error:', error);
+      Alert.alert('Ошибка', 'Не удалось сделать селфи для Face ID');
+    }
+  };
+
+  const handleRegisterFaceId = async () => {
+    if (!faceIdSelfie) {
+      Alert.alert('Ошибка', 'Сначала сделайте селфи для регистрации Face ID');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      const filename = faceIdSelfie.split('/').pop();
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+      formData.append('faceImage', {
+        uri: faceIdSelfie,
+        name: `faceid-registration-${Date.now()}.jpg`,
+        type,
+      });
+
+      const response = await faceVerificationAPI.registerFace(formData);
+
+      if (response.success) {
+        setFaceIdRegistered(true);
+        setFaceIdSelfie(null);
+        Alert.alert(
+          '✅ Face ID зарегистрирован!',
+          'Теперь вы можете начинать рабочие сессии с Face ID верификацией',
+          [{ text: 'OK' }]
+        );
+
+        // Update user data
+        const updatedUser = { ...user, faceIdRegistered: true };
+        await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+        setUser(updatedUser);
+      } else {
+        Alert.alert('Ошибка', response.message || 'Не удалось зарегистрировать Face ID');
+      }
+    } catch (error) {
+      console.error('Face ID registration error:', error);
+      Alert.alert(
+        'Ошибка',
+        error.response?.data?.message || error.message || 'Не удалось зарегистрировать Face ID'
+      );
     } finally {
       setLoading(false);
     }
@@ -292,6 +369,87 @@ const ProfileScreen = ({ navigation }) => {
           <Text style={[styles.themeHint, { color: colors.textSecondary }]}>
             Текущая тема: {isDark ? 'Темная' : 'Светлая'}
           </Text>
+        </View>
+      </View>
+
+      {/* Face ID Registration */}
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>🔐 Face ID Верификация</Text>
+        <View style={[styles.card, { backgroundColor: colors.card }]}>
+          {user?.faceIdRegistered || faceIdRegistered ? (
+            <View style={[styles.faceIdRegistered, { backgroundColor: colors.successBackground }]}>
+              <Text style={[styles.faceIdRegisteredIcon, { fontSize: 48 }]}>✅</Text>
+              <Text style={[styles.faceIdRegisteredText, { color: colors.successText }]}>
+                Face ID зарегистрирован
+              </Text>
+              <Text style={[styles.faceIdRegisteredHint, { color: colors.textSecondary }]}>
+                Вы можете начинать рабочие сессии с автоматической верификацией лица
+              </Text>
+            </View>
+          ) : (
+            <View>
+              <View style={[styles.faceIdWarning, { backgroundColor: colors.warningBackground }]}>
+                <Text style={[styles.faceIdWarningText, { color: colors.warningText }]}>
+                  ⚠️ Face ID не зарегистрирован
+                </Text>
+                <Text style={[styles.faceIdWarningHint, { color: colors.warningText }]}>
+                  Для начала рабочих сессий необходимо зарегистрировать Face ID. Это требование антикоррупционной защиты.
+                </Text>
+              </View>
+
+              {faceIdSelfie ? (
+                <View>
+                  <View style={styles.faceIdPreview}>
+                    <Image
+                      source={{ uri: faceIdSelfie }}
+                      style={styles.faceIdImage}
+                      resizeMode="cover"
+                    />
+                  </View>
+                  <View style={[styles.faceIdReady, { backgroundColor: colors.infoLight }]}>
+                    <Text style={[styles.faceIdReadyText, { color: colors.infoText }]}>
+                      ✅ Селфи готово к регистрации
+                    </Text>
+                  </View>
+                  <View style={styles.faceIdButtons}>
+                    <Button
+                      title="🔄 Переснять"
+                      onPress={handleTakeFaceIdSelfie}
+                      style={[styles.retakeButtonSmall, { backgroundColor: colors.textSecondary }]}
+                    />
+                    <Button
+                      title="✅ Зарегистрировать Face ID"
+                      onPress={handleRegisterFaceId}
+                      loading={loading}
+                      style={[styles.registerButton, { backgroundColor: colors.success }]}
+                    />
+                  </View>
+                </View>
+              ) : (
+                <View>
+                  <View style={styles.faceIdInstructions}>
+                    <Text style={[styles.instructionStep, { color: colors.text }]}>
+                      1️⃣ Нажмите кнопку ниже
+                    </Text>
+                    <Text style={[styles.instructionStep, { color: colors.text }]}>
+                      2️⃣ Сделайте селфи (фронтальная камера)
+                    </Text>
+                    <Text style={[styles.instructionStep, { color: colors.text }]}>
+                      3️⃣ Убедитесь, что лицо хорошо видно
+                    </Text>
+                    <Text style={[styles.instructionStep, { color: colors.text }]}>
+                      4️⃣ Зарегистрируйте Face ID
+                    </Text>
+                  </View>
+                  <Button
+                    title="📸 Сделать селфи для Face ID"
+                    onPress={handleTakeFaceIdSelfie}
+                    style={[styles.faceIdButton, { backgroundColor: colors.primary }]}
+                  />
+                </View>
+              )}
+            </View>
+          )}
         </View>
       </View>
 
@@ -565,6 +723,78 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
     fontStyle: 'italic',
+  },
+  faceIdRegistered: {
+    padding: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  faceIdRegisteredIcon: {
+    marginBottom: 12,
+  },
+  faceIdRegisteredText: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  faceIdRegisteredHint: {
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  faceIdWarning: {
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  faceIdWarningText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  faceIdWarningHint: {
+    fontSize: 14,
+  },
+  faceIdPreview: {
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  faceIdImage: {
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    borderWidth: 4,
+    borderColor: '#10b981',
+  },
+  faceIdReady: {
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  faceIdReadyText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  faceIdButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  retakeButtonSmall: {
+    flex: 1,
+  },
+  registerButton: {
+    flex: 2,
+  },
+  faceIdInstructions: {
+    marginBottom: 16,
+  },
+  instructionStep: {
+    fontSize: 14,
+    marginBottom: 8,
+    lineHeight: 20,
+  },
+  faceIdButton: {
+    marginTop: 8,
   },
 });
 

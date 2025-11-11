@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Image,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
@@ -18,7 +19,7 @@ import { Camera } from 'expo-camera';
 import NetInfo from '@react-native-community/netinfo';
 import { useTheme } from '../hooks/useTheme';
 import api from '../api/axios';
-import { workSessionsAPI, geofencesAPI } from '../api/api';
+import { workSessionsAPI, geofencesAPI, faceVerificationAPI } from '../api/api';
 import offlineQueue from '../services/offlineQueue';
 import Button from '../components/Button';
 
@@ -82,6 +83,8 @@ const WorkSessionScreen = ({ navigation }) => {
   const [timer, setTimer] = useState(0);
   const [geofenceStatus, setGeofenceStatus] = useState(null);
   const [isOnline, setIsOnline] = useState(true);
+  const [faceIdSelfie, setFaceIdSelfie] = useState(null); // Face ID selfie for verification
+  const [faceIdStatus, setFaceIdStatus] = useState(null); // Face ID verification status
   const { colors } = useTheme();
   const timerInterval = useRef(null);
   const locationSubscription = useRef(null);
@@ -207,9 +210,57 @@ const WorkSessionScreen = ({ navigation }) => {
     }
   };
 
+  const handleTakeFaceIdSelfie = async () => {
+    try {
+      // Request camera permissions
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Ошибка', 'Необходимо разрешение на использование камеры для Face ID');
+        return;
+      }
+
+      // Launch camera for selfie (ONLY camera, no gallery)
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [3, 4],
+        quality: 0.8,
+        cameraType: ImagePicker.CameraType.front, // Force front camera for selfie
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setFaceIdSelfie(result.assets[0].uri);
+        setFaceIdStatus(null); // Reset status
+        Alert.alert(
+          '✅ Селфи сделано',
+          'Теперь нажмите "Начать работу" для верификации Face ID',
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      console.error('Face ID selfie error:', error);
+      Alert.alert('Ошибка', 'Не удалось сделать селфи для Face ID');
+    }
+  };
+
   const handleStartSession = async () => {
     if (!location) {
       Alert.alert('Ошибка', 'Определение местоположения...');
+      return;
+    }
+
+    // ⭐ КРИТИЧНО: Проверка Face ID селфи (ОБЯЗАТЕЛЬНО!)
+    if (!faceIdSelfie) {
+      Alert.alert(
+        '❌ Face ID обязателен',
+        'Перед началом работы необходимо сделать селфи для Face ID верификации. Это требование антикоррупционной защиты.',
+        [
+          {
+            text: 'Сделать селфи',
+            onPress: handleTakeFaceIdSelfie
+          }
+        ]
+      );
       return;
     }
 
@@ -232,29 +283,114 @@ const WorkSessionScreen = ({ navigation }) => {
   const startSessionConfirmed = async () => {
     setLoading(true);
     try {
-      const sessionData = {
-        clientId: user.id,
-        startLatitude: location.coords.latitude,
-        startLongitude: location.coords.longitude,
-        workLocation: geofenceStatus?.geofence?.name || 'Определяется...',
-      };
+      // ⭐ КРИТИЧНО: Создать FormData с Face ID селфи
+      const formData = new FormData();
+      const filename = faceIdSelfie.split('/').pop();
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+      // Add Face ID selfie photo
+      formData.append('photo', {
+        uri: faceIdSelfie,
+        name: `faceid-${Date.now()}.jpg`,
+        type,
+      });
+
+      // Add session data
+      formData.append('clientId', user.id);
+      formData.append('startLatitude', location.coords.latitude.toString());
+      formData.append('startLongitude', location.coords.longitude.toString());
+      formData.append('workLocation', geofenceStatus?.geofence?.name || 'Определяется...');
+      formData.append('biometricType', 'FaceID');
+      formData.append('deviceId', `${Platform.OS}-${Date.now()}`);
 
       let newSession;
 
       if (isOnline) {
-        const response = await workSessionsAPI.startWorkSession(sessionData);
-        newSession = response.data;
+        try {
+          // ⭐ Send with Face ID verification
+          const response = await api.post('/work-sessions/start', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+          });
+
+          newSession = response.data;
+
+          // ✅ Face ID верификация прошла успешно!
+          setFaceIdStatus({
+            verified: true,
+            confidence: newSession.faceVerification?.confidence || 0,
+            similarity: newSession.faceVerification?.similarity || '0%'
+          });
+
+          Alert.alert(
+            '✅ Рабочая сессия начата!',
+            `Face ID верифицирован: ${newSession.faceVerification?.similarity || 'N/A'}\n\nВаше местоположение отслеживается. Не забывайте делать фото работы.`,
+            [{ text: 'OK' }]
+          );
+
+          // Clear Face ID selfie
+          setFaceIdSelfie(null);
+
+        } catch (error) {
+          console.error('Start session error:', error);
+
+          // ❌ Обработка ошибок Face ID
+          if (error.response?.status === 400 && error.response?.data?.requireFaceRegistration) {
+            Alert.alert(
+              '❌ Face ID не зарегистрирован',
+              'Вам необходимо зарегистрировать Face ID в настройках профиля перед началом работы.',
+              [
+                { text: 'Отмена', style: 'cancel' },
+                { text: 'Перейти в профиль', onPress: () => navigation.navigate('Profile') }
+              ]
+            );
+            setLoading(false);
+            return;
+          }
+
+          if (error.response?.status === 403 && error.response?.data?.faceVerificationFailed) {
+            const details = error.response.data.details || {};
+            Alert.alert(
+              '❌ Face ID верификация не прошла',
+              `Ваше лицо не совпадает с зарегистрированным!\n\nСхожесть: ${(details.similarity * 100).toFixed(1)}%\nТребуется: ${(details.threshold * 100).toFixed(0)}%\n\nЭто требование антикоррупционной защиты.`,
+              [
+                { text: 'Попробовать снова', onPress: handleTakeFaceIdSelfie }
+              ]
+            );
+            setFaceIdStatus({
+              verified: false,
+              confidence: details.similarity || 0,
+              reason: 'Лицо не совпадает'
+            });
+            setLoading(false);
+            return;
+          }
+
+          throw error;
+        }
       } else {
         // Offline mode - create local session and queue for sync
         newSession = {
           id: Date.now().toString(),
-          ...sessionData,
+          clientId: user.id,
+          startLatitude: location.coords.latitude,
+          startLongitude: location.coords.longitude,
+          workLocation: geofenceStatus?.geofence?.name || 'Определяется...',
           startTime: new Date().toISOString(),
           status: 'in_progress',
-          offline: true
+          offline: true,
+          faceIdSelfie: faceIdSelfie // Store selfie URI for later sync
         };
 
-        await offlineQueue.addToQueue('create_work_session', sessionData);
+        await offlineQueue.addToQueue('create_work_session', {
+          ...newSession,
+          photoUri: faceIdSelfie
+        });
+
+        Alert.alert(
+          '📡 Оффлайн режим',
+          'Рабочая сессия начата в оффлайн режиме. Face ID будет верифицирован при подключении к интернету.'
+        );
       }
 
       await AsyncStorage.setItem('activeSession', JSON.stringify(newSession));
@@ -262,14 +398,11 @@ const WorkSessionScreen = ({ navigation }) => {
       startTimer(newSession.startTime);
       startLocationTracking(newSession);
 
-      Alert.alert(
-        'Успех',
-        isOnline ? 'Рабочая сессия начата' : 'Рабочая сессия начата (оффлайн режим)'
-      );
     } catch (error) {
+      console.error('Start session error:', error);
       Alert.alert(
         'Ошибка',
-        error.response?.data?.message || 'Не удалось начать сессию'
+        error.response?.data?.message || error.message || 'Не удалось начать сессию'
       );
     } finally {
       setLoading(false);
@@ -505,6 +638,58 @@ const WorkSessionScreen = ({ navigation }) => {
         )}
       </View>
 
+      {/* Face ID Card - Show only when NO active session */}
+      {!session && (
+        <View style={[styles.card, { backgroundColor: colors.card }]}>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>🔐 Face ID Верификация</Text>
+
+          {faceIdSelfie ? (
+            <View>
+              <View style={styles.faceIdPreview}>
+                <Image
+                  source={{ uri: faceIdSelfie }}
+                  style={styles.faceIdImage}
+                  resizeMode="cover"
+                />
+              </View>
+              <View style={[styles.faceIdSuccess, { backgroundColor: colors.successBackground }]}>
+                <Text style={[styles.faceIdSuccessText, { color: colors.successText }]}>
+                  ✅ Селфи готово к верификации
+                </Text>
+              </View>
+              <Button
+                title="🔄 Переснять селфи"
+                onPress={handleTakeFaceIdSelfie}
+                style={[styles.retakeButton, { backgroundColor: colors.textSecondary }]}
+              />
+            </View>
+          ) : (
+            <View>
+              <Text style={[styles.faceIdInfo, { color: colors.textSecondary }]}>
+                Для начала работы необходимо сделать селфи для Face ID верификации.
+                Это требование антикоррупционной защиты.
+              </Text>
+              <Button
+                title="📸 Сделать селфи для Face ID"
+                onPress={handleTakeFaceIdSelfie}
+                style={[styles.faceIdButton, { backgroundColor: colors.primary }]}
+              />
+            </View>
+          )}
+
+          {faceIdStatus && !faceIdStatus.verified && (
+            <View style={[styles.faceIdError, { backgroundColor: colors.errorBackground }]}>
+              <Text style={[styles.faceIdErrorText, { color: colors.errorText }]}>
+                ❌ {faceIdStatus.reason || 'Верификация не прошла'}
+              </Text>
+              <Text style={[styles.faceIdErrorDetails, { color: colors.errorText }]}>
+                Схожесть: {(faceIdStatus.confidence * 100).toFixed(1)}%
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
+
       {/* Actions */}
       <View style={styles.actions}>
         {session ? (
@@ -523,7 +708,7 @@ const WorkSessionScreen = ({ navigation }) => {
           </>
         ) : (
           <Button
-            title="Начать рабочую сессию"
+            title={faceIdSelfie ? "✅ Начать работу (с Face ID)" : "Начать рабочую сессию"}
             onPress={handleStartSession}
             loading={loading}
             disabled={!location}
@@ -661,6 +846,52 @@ const styles = StyleSheet.create({
   infoText: {
     fontSize: 14,
     marginBottom: 8,
+  },
+  faceIdPreview: {
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  faceIdImage: {
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    borderWidth: 4,
+    borderColor: '#10b981',
+  },
+  faceIdSuccess: {
+    padding: 12,
+    borderRadius: 8,
+    marginVertical: 12,
+    alignItems: 'center',
+  },
+  faceIdSuccessText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  faceIdInfo: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  faceIdButton: {
+    marginTop: 8,
+  },
+  retakeButton: {
+    marginTop: 8,
+  },
+  faceIdError: {
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 12,
+  },
+  faceIdErrorText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  faceIdErrorDetails: {
+    fontSize: 14,
   },
 });
 
