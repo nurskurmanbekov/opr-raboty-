@@ -178,6 +178,13 @@ exports.getDashboardStats = async (req, res, next) => {
       ? Math.round((totalCompletedHours / totalAssignedHours) * 100)
       : 0;
 
+    // 🚫 NO CACHE: Prevent browser from caching real-time statistics
+    res.set({
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
+
     res.json({
       success: true,
       data: {
@@ -348,6 +355,13 @@ exports.getMRUStats = async (req, res, next) => {
       };
     }));
 
+    // 🚫 NO CACHE: Prevent browser from caching real-time statistics
+    res.set({
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
+
     res.json({
       success: true,
       data: mruStats
@@ -443,6 +457,13 @@ exports.getDistrictStats = async (req, res, next) => {
       };
     }));
 
+    // 🚫 NO CACHE: Prevent browser from caching real-time statistics
+    res.set({
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
+
     res.json({
       success: true,
       data: districtStats
@@ -504,6 +525,13 @@ exports.getDrilldownData = async (req, res, next) => {
         // По умолчанию показываем уровень МРУ
         data = await getMRULevel();
     }
+
+    // 🚫 NO CACHE: Prevent browser from caching real-time statistics
+    res.set({
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
 
     res.json({
       success: true,
