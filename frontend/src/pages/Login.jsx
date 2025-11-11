@@ -43,11 +43,12 @@ const Login = () => {
           ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)'
           : 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)'
       }}
+    >
       {/* Theme Toggle Button */}
       <div className="fixed top-4 right-4 z-50">
         <ThemeToggle />
       </div>
-    >
+
       {/* Animated Background Circles */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div
