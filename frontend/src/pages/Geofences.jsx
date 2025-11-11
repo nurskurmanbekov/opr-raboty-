@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { MapPin, Plus, Edit, Trash2, AlertTriangle, Search } from 'lucide-react';
 import Layout from '../components/Layout';
-import { geofencesAPI, districtsAPI, mrusAPI } from '../api/api';
+import { geofencesAPI, districtsAPI, mruAPI } from '../api/api';
 import Modal from '../components/Modal';
 import MapPicker from '../components/MapPicker';
 import { useAuth } from '../context/AuthContext';
@@ -68,7 +68,7 @@ const Geofences = () => {
 
   const fetchMRUs = async () => {
     try {
-      const response = await mrusAPI.getAllMRUs();
+      const response = await mruAPI.getAllMRU();
       setMRUs(response.data || []);
     } catch (error) {
       console.error('Error fetching MRUs:', error);
