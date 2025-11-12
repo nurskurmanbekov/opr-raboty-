@@ -13,12 +13,29 @@ class AnalyticsService {
    */
   async getOverallStats(filters = {}) {
     try {
-      const { startDate, endDate, district, officerId } = filters;
+      const { startDate, endDate, district, districtId, mruId, officerId } = filters;
 
       const whereClient = {};
       const whereSession = {};
+      const includeOfficer = [];
 
+      // Поддержка старого параметра district (STRING) для обратной совместимости
       if (district) whereClient.district = district;
+
+      // Новый способ - фильтрация по districtId или mruId через officer
+      if (districtId || mruId) {
+        const whereOfficer = {};
+        if (districtId) whereOfficer.districtId = districtId;
+        if (mruId) whereOfficer.mruId = mruId;
+        includeOfficer.push({
+          model: User,
+          as: 'officer',
+          where: whereOfficer,
+          attributes: [],
+          required: true
+        });
+      }
+
       if (officerId) whereClient.officerId = officerId;
 
       if (startDate && endDate) {
@@ -28,17 +45,24 @@ class AnalyticsService {
       }
 
       // Total clients
-      const totalClients = await Client.count({ where: whereClient });
+      const totalClients = await Client.count({
+        where: whereClient,
+        include: includeOfficer,
+        distinct: true
+      });
 
       // Active clients (with at least one work session)
       const activeClients = await Client.count({
         where: whereClient,
-        include: [{
-          model: WorkSession,
-          as: 'workSessions',
-          where: whereSession,
-          required: true
-        }],
+        include: [
+          ...includeOfficer,
+          {
+            model: WorkSession,
+            as: 'workSessions',
+            where: whereSession,
+            required: true
+          }
+        ],
         distinct: true
       });
 
@@ -49,6 +73,7 @@ class AnalyticsService {
           model: Client,
           as: 'client',
           where: whereClient,
+          include: includeOfficer,
           required: true
         }]
       });
@@ -64,6 +89,7 @@ class AnalyticsService {
           model: Client,
           as: 'client',
           where: whereClient,
+          include: includeOfficer,
           attributes: []
         }],
         group: ['status'],
@@ -81,6 +107,7 @@ class AnalyticsService {
           model: Client,
           as: 'client',
           where: whereClient,
+          include: includeOfficer,
           attributes: []
         }],
         attributes: ['startTime', 'endTime']
@@ -100,6 +127,7 @@ class AnalyticsService {
           model: Client,
           as: 'client',
           where: whereClient,
+          include: includeOfficer,
           required: true
         }]
       });

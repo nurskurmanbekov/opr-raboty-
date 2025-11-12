@@ -29,7 +29,8 @@
         "CAMERA",
         "INTERNET",
         "ACCESS_NETWORK_STATE"
-      ]
+      ],
+      "usesCleartextTraffic": true
     },
     "web": {
       "bundler": "metro"
@@ -48,7 +49,8 @@
         {
           "cameraPermission": "Разрешите $(PRODUCT_NAME) доступ к вашей камере для фото-верификации работы."
         }
-      ]
+      ],
+      "./plugins/withAndroidNetworkSecurityConfig.js"
     ]
   }
 }

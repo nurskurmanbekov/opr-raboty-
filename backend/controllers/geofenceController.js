@@ -1,4 +1,4 @@
-const { Geofence, GeofenceViolation, Client, WorkSession } = require('../models');
+const { Geofence, GeofenceViolation, Client, WorkSession, District, MRU } = require('../models');
 const { isInGeofence, haversineDistance } = require('../utils/geofence');
 
 // @desc    Create geofence
@@ -6,7 +6,7 @@ const { isInGeofence, haversineDistance } = require('../utils/geofence');
 // @access  Private (Admin, District Admin)
 exports.createGeofence = async (req, res, next) => {
   try {
-    const { name, latitude, longitude, radius, workLocation, district } = req.body;
+    const { name, latitude, longitude, radius, workLocation, district, districtId, mruId } = req.body;
 
     const geofence = await Geofence.create({
       name,
@@ -14,7 +14,10 @@ exports.createGeofence = async (req, res, next) => {
       longitude,
       radius: radius || 200,
       workLocation,
-      district: district || req.user.district,
+      // Поддержка новой системы (districtId, mruId) и старой (district STRING)
+      district: district || req.user.district || null,
+      districtId: districtId || req.user.districtId || null,
+      mruId: mruId || req.user.mruId || null,
       createdBy: req.user.id
     });
 
@@ -33,15 +36,30 @@ exports.createGeofence = async (req, res, next) => {
 // @access  Private
 exports.getAllGeofences = async (req, res, next) => {
   try {
-    const { district, isActive } = req.query;
+    const { district, districtId, mruId, isActive } = req.query;
 
     let whereClause = {};
 
     // District admins can only see their district's geofences
     if (req.user.role === 'district_admin') {
-      whereClause.district = req.user.district;
-    } else if (district) {
-      whereClause.district = district;
+      // Новая система - districtId
+      if (req.user.districtId) {
+        whereClause.districtId = req.user.districtId;
+      } else if (req.user.district) {
+        // Fallback для старой системы
+        whereClause.district = req.user.district;
+      }
+    } else {
+      // Фильтрация по параметрам запроса
+      if (districtId) {
+        whereClause.districtId = districtId;
+      } else if (district) {
+        // Поддержка старого параметра district (STRING)
+        whereClause.district = district;
+      }
+      if (mruId) {
+        whereClause.mruId = mruId;
+      }
     }
 
     if (isActive !== undefined) {
@@ -50,6 +68,23 @@ exports.getAllGeofences = async (req, res, next) => {
 
     const geofences = await Geofence.findAll({
       where: whereClause,
+      include: [
+        {
+          model: District,
+          as: 'assignedDistrict',
+          attributes: ['id', 'name'],
+          include: [{
+            model: MRU,
+            as: 'mru',
+            attributes: ['id', 'name']
+          }]
+        },
+        {
+          model: MRU,
+          as: 'assignedMru',
+          attributes: ['id', 'name']
+        }
+      ],
       order: [['createdAt', 'DESC']]
     });
 
@@ -100,7 +135,7 @@ exports.updateGeofence = async (req, res, next) => {
       });
     }
 
-    const { name, latitude, longitude, radius, workLocation, isActive } = req.body;
+    const { name, latitude, longitude, radius, workLocation, district, districtId, mruId, isActive } = req.body;
 
     await geofence.update({
       name: name || geofence.name,
@@ -108,6 +143,9 @@ exports.updateGeofence = async (req, res, next) => {
       longitude: longitude || geofence.longitude,
       radius: radius || geofence.radius,
       workLocation: workLocation || geofence.workLocation,
+      district: district !== undefined ? district : geofence.district,
+      districtId: districtId !== undefined ? districtId : geofence.districtId,
+      mruId: mruId !== undefined ? mruId : geofence.mruId,
       isActive: isActive !== undefined ? isActive : geofence.isActive
     });
 

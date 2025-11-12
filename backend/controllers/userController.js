@@ -42,21 +42,92 @@ exports.getUsers = async (req, res, next) => {
 // @access  Private
 exports.getUser = async (req, res, next) => {
   try {
-    const user = await User.findByPk(req.params.id, {
+    const targetUserId = req.params.id;
+    const currentUser = req.user;
+
+    // 🔒 SECURITY: User can always see themselves
+    if (targetUserId === currentUser.id) {
+      const user = await User.findByPk(targetUserId, {
+        attributes: { exclude: ['password'] }
+      });
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      return res.json({
+        success: true,
+        data: user
+      });
+    }
+
+    // 🔒 SECURITY: Superadmin can see all users
+    if (currentUser.role === 'superadmin' || currentUser.role === 'central_admin') {
+      const user = await User.findByPk(targetUserId, {
+        attributes: { exclude: ['password'] }
+      });
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      return res.json({
+        success: true,
+        data: user
+      });
+    }
+
+    const targetUser = await User.findByPk(targetUserId, {
       attributes: { exclude: ['password'] }
     });
 
-    if (!user) {
+    if (!targetUser) {
       return res.status(404).json({
         success: false,
         message: 'User not found'
       });
     }
 
-    res.json({
-      success: true,
-      data: user
+    // 🔒 SECURITY: District admin can only see users from their district
+    if (currentUser.role === 'district_admin') {
+      if (!currentUser.districtId || targetUser.districtId !== currentUser.districtId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: different district'
+        });
+      }
+      return res.json({
+        success: true,
+        data: targetUser
+      });
+    }
+
+    // 🔒 SECURITY: Regional admin can only see users from their MRU
+    if (currentUser.role === 'regional_admin') {
+      if (!currentUser.mruId || targetUser.mruId !== currentUser.mruId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: different MRU'
+        });
+      }
+      return res.json({
+        success: true,
+        data: targetUser
+      });
+    }
+
+    // 🔒 SECURITY: Officers and clients cannot see other users
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied'
     });
+
   } catch (error) {
     next(error);
   }
@@ -67,31 +138,127 @@ exports.getUser = async (req, res, next) => {
 // @access  Private (Admin)
 exports.updateUser = async (req, res, next) => {
   try {
-    const user = await User.findByPk(req.params.id);
+    const targetUserId = req.params.id;
+    const currentUser = req.user;
+    const { fullName, email, phone, role: newRole, district, districtId, mruId, isActive } = req.body;
 
-    if (!user) {
+    // 🔒 SECURITY: Cannot modify yourself (use /profile endpoint instead)
+    if (targetUserId === currentUser.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Use /profile endpoint to update your own data'
+      });
+    }
+
+    const targetUser = await User.findByPk(targetUserId);
+
+    if (!targetUser) {
       return res.status(404).json({
         success: false,
         message: 'User not found'
       });
     }
 
-    const { fullName, email, phone, role, district, isActive } = req.body;
+    // 🔒 SECURITY: Only superadmin can change user roles
+    if (newRole && newRole !== targetUser.role) {
+      if (currentUser.role !== 'superadmin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Only superadmin can change user roles'
+        });
+      }
+    }
 
-    await user.update({
-      fullName,
-      email,
-      phone,
-      role,
-      district,
-      isActive
+    // 🔒 SECURITY: Superadmin can modify anyone
+    if (currentUser.role === 'superadmin' || currentUser.role === 'central_admin') {
+      await targetUser.update({
+        fullName,
+        email,
+        phone,
+        role: newRole,
+        district,
+        districtId,
+        mruId,
+        isActive
+      });
+
+      return res.json({
+        success: true,
+        message: 'User updated successfully',
+        data: targetUser
+      });
+    }
+
+    // 🔒 SECURITY: District admin can only modify users from their district
+    if (currentUser.role === 'district_admin') {
+      if (!currentUser.districtId || targetUser.districtId !== currentUser.districtId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: different district'
+        });
+      }
+
+      // District admin cannot modify other admins
+      if (targetUser.role === 'district_admin' || targetUser.role === 'regional_admin' || targetUser.role === 'superadmin' || targetUser.role === 'central_admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Cannot modify admin users'
+        });
+      }
+
+      await targetUser.update({
+        fullName,
+        email,
+        phone,
+        isActive
+        // Note: district_admin cannot change role, district, districtId, mruId
+      });
+
+      return res.json({
+        success: true,
+        message: 'User updated successfully',
+        data: targetUser
+      });
+    }
+
+    // 🔒 SECURITY: Regional admin can only modify users from their MRU
+    if (currentUser.role === 'regional_admin') {
+      if (!currentUser.mruId || targetUser.mruId !== currentUser.mruId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: different MRU'
+        });
+      }
+
+      // Regional admin cannot modify other admins of same or higher level
+      if (targetUser.role === 'regional_admin' || targetUser.role === 'superadmin' || targetUser.role === 'central_admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Cannot modify admin users of same or higher level'
+        });
+      }
+
+      await targetUser.update({
+        fullName,
+        email,
+        phone,
+        isActive
+        // Note: regional_admin cannot change role, district, districtId, mruId
+      });
+
+      return res.json({
+        success: true,
+        message: 'User updated successfully',
+        data: targetUser
+      });
+    }
+
+    // 🔒 SECURITY: Other roles cannot modify users
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied'
     });
 
-    res.json({
-      success: true,
-      message: 'User updated successfully',
-      data: user
-    });
   } catch (error) {
     next(error);
   }

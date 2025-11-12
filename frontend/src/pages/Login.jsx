@@ -4,6 +4,8 @@ import { motion } from 'framer-motion';
 import { Mail, Lock, LogIn, Shield, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
+import ThemeToggle from '../components/ThemeToggle';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -12,6 +14,7 @@ const Login = () => {
 
   const { login } = useAuth();
   const navigate = useNavigate();
+  const { theme, isDark } = useTheme();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -33,7 +36,19 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 relative overflow-hidden">
+    <div
+      className="min-h-screen flex items-center justify-center relative overflow-hidden transition-colors"
+      style={{
+        background: isDark
+          ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)'
+          : 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)'
+      }}
+    >
+      {/* Theme Toggle Button */}
+      <div className="fixed top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
+
       {/* Animated Background Circles */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div
@@ -46,7 +61,10 @@ const Login = () => {
             repeat: Infinity,
             ease: "linear"
           }}
-          className="absolute -top-1/2 -left-1/2 w-full h-full bg-blue-500/10 rounded-full"
+          className="absolute -top-1/2 -left-1/2 w-full h-full rounded-full"
+          style={{
+            backgroundColor: isDark ? 'rgba(144, 202, 249, 0.05)' : 'rgba(66, 165, 245, 0.1)'
+          }}
         />
         <motion.div
           animate={{
@@ -58,7 +76,10 @@ const Login = () => {
             repeat: Infinity,
             ease: "linear"
           }}
-          className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-purple-500/10 rounded-full"
+          className="absolute -bottom-1/2 -right-1/2 w-full h-full rounded-full"
+          style={{
+            backgroundColor: isDark ? 'rgba(244, 143, 177, 0.05)' : 'rgba(156, 39, 176, 0.1)'
+          }}
         />
       </div>
 
@@ -88,7 +109,11 @@ const Login = () => {
         initial={{ opacity: 0, y: 50, scale: 0.9 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.5 }}
-        className="bg-white/95 backdrop-blur-lg p-10 rounded-3xl shadow-2xl w-full max-w-md relative z-10"
+        className="backdrop-blur-lg p-10 rounded-3xl shadow-2xl w-full max-w-md relative z-10 transition-colors"
+        style={{
+          backgroundColor: isDark ? 'rgba(30, 30, 30, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+          borderColor: isDark ? theme.colors.divider : 'transparent'
+        }}
       >
         {/* Logo/Icon */}
         <motion.div
@@ -109,10 +134,22 @@ const Login = () => {
           transition={{ delay: 0.3 }}
           className="text-center mb-8"
         >
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+          <h1
+            className="text-3xl font-bold mb-2"
+            style={{
+              background: isDark
+                ? 'linear-gradient(to right, #90caf9, #f48fb1)'
+                : 'linear-gradient(to right, #667eea, #764ba2)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text'
+            }}
+          >
             Система Пробации КР
           </h1>
-          <p className="text-gray-600">Мониторинг общественных работ</p>
+          <p style={{ color: theme.colors.textSecondary }}>
+            Мониторинг общественных работ
+          </p>
         </motion.div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -122,17 +159,29 @@ const Login = () => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.4 }}
           >
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              className="block text-sm font-medium mb-2"
+              style={{ color: theme.colors.textPrimary }}
+            >
               Email
             </label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+              <Mail
+                className="absolute left-3 top-1/2 transform -translate-y-1/2"
+                size={20}
+                style={{ color: theme.colors.textSecondary }}
+              />
               <motion.input
                 whileFocus={{ scale: 1.02 }}
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+                className="w-full pl-11 pr-4 py-3 rounded-xl transition"
+                style={{
+                  backgroundColor: theme.colors.input,
+                  color: theme.colors.textPrimary,
+                  border: `2px solid ${theme.colors.inputBorder}`,
+                }}
                 placeholder="admin@probation.kg"
                 required
               />
@@ -145,17 +194,29 @@ const Login = () => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.5 }}
           >
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              className="block text-sm font-medium mb-2"
+              style={{ color: theme.colors.textPrimary }}
+            >
               Пароль
             </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+              <Lock
+                className="absolute left-3 top-1/2 transform -translate-y-1/2"
+                size={20}
+                style={{ color: theme.colors.textSecondary }}
+              />
               <motion.input
                 whileFocus={{ scale: 1.02 }}
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+                className="w-full pl-11 pr-4 py-3 rounded-xl transition"
+                style={{
+                  backgroundColor: theme.colors.input,
+                  color: theme.colors.textPrimary,
+                  border: `2px solid ${theme.colors.inputBorder}`,
+                }}
                 placeholder="••••••"
                 required
               />
@@ -196,21 +257,42 @@ const Login = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.7 }}
-          className="mt-8 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-100"
+          className="mt-8 p-4 rounded-xl transition-colors"
+          style={{
+            background: isDark
+              ? 'linear-gradient(to right, rgba(144, 202, 249, 0.1), rgba(244, 143, 177, 0.1))'
+              : 'linear-gradient(to right, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1))',
+            border: `1px solid ${theme.colors.divider}`
+          }}
         >
-          <p className="text-center text-sm font-medium text-gray-700 mb-2">
+          <p
+            className="text-center text-sm font-medium mb-2"
+            style={{ color: theme.colors.textPrimary }}
+          >
             Тестовые данные:
           </p>
-          <div className="space-y-1 text-xs text-gray-600">
+          <div className="space-y-1 text-xs" style={{ color: theme.colors.textSecondary }}>
             <div className="flex items-center justify-between">
               <span>Email:</span>
-              <code className="bg-white px-2 py-1 rounded font-mono text-blue-600">
+              <code
+                className="px-2 py-1 rounded font-mono"
+                style={{
+                  backgroundColor: theme.colors.background,
+                  color: theme.colors.primary
+                }}
+              >
                 admin@probation.kg
               </code>
             </div>
             <div className="flex items-center justify-between">
               <span>Пароль:</span>
-              <code className="bg-white px-2 py-1 rounded font-mono text-blue-600">
+              <code
+                className="px-2 py-1 rounded font-mono"
+                style={{
+                  backgroundColor: theme.colors.background,
+                  color: theme.colors.primary
+                }}
+              >
                 123456
               </code>
             </div>
@@ -224,7 +306,7 @@ const Login = () => {
           transition={{ delay: 0.8 }}
           className="mt-6 text-center"
         >
-          <p className="text-xs text-gray-500">
+          <p className="text-xs" style={{ color: theme.colors.textSecondary }}>
             © 2024 Система Пробации КР. Все права защищены.
           </p>
         </motion.div>

@@ -262,11 +262,34 @@ export const exportAPI = {
       params,
       responseType: 'blob'
     }),
+  exportStatisticsToPDF: (params) =>
+    api.get('/export/statistics/pdf', {
+      params,
+      responseType: 'blob'
+    }),
   exportClientsToExcel: (params) =>
     api.get('/export/clients/excel', {
       params,
       responseType: 'blob'
     })
+};
+
+// Statistics API (новый!)
+export const statisticsAPI = {
+  getDashboardStats: (params) => api.get('/statistics/dashboard', { params }),
+  getMRUStats: (params) => api.get('/statistics/mru', { params }),
+  getDistrictStats: (params) => api.get('/statistics/districts', { params }),
+  getDrilldownData: (params) => api.get('/statistics/drilldown', { params })
+};
+
+// Audit Logs API (новый!)
+export const auditLogsAPI = {
+  getAuditLogs: (params) => api.get('/audit-logs', { params }),
+  getAuditLogById: (id) => api.get(`/audit-logs/${id}`),
+  getUserAuditLogs: (userId, params) => api.get(`/audit-logs/user/${userId}`, { params }),
+  getEntityAuditLogs: (entityType, entityId, params) =>
+    api.get(`/audit-logs/entity/${entityType}/${entityId}`, { params }),
+  getAuditStats: (params) => api.get('/audit-logs/stats', { params })
 };
 
 export default api;

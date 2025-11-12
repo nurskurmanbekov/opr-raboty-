@@ -31,6 +31,11 @@ const District = sequelize.define('District', {
     type: DataTypes.TEXT,
     allowNull: true
   },
+  coordinates: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    comment: 'Координаты для отображения на карте: { lat: number, lng: number, svgPath?: string }'
+  },
   isActive: {
     type: DataTypes.BOOLEAN,
     defaultValue: true

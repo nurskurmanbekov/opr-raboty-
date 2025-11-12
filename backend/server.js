@@ -86,6 +86,8 @@ app.use('/api/approvals', require('./routes/approvalRoutes'));
 app.use('/api/officers', require('./routes/officerRoutes'));
 app.use('/api/auditors', require('./routes/auditorRoutes'));
 app.use('/api/export', require('./routes/exportRoutes'));
+app.use('/api/audit-logs', require('./routes/auditRoutes'));
+app.use('/api/statistics', require('./routes/statisticsRoutes'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {

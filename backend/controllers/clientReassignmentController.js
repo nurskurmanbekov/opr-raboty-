@@ -107,9 +107,9 @@ exports.reassignClient = async (req, res, next) => {
     if (previousOfficer) {
       await Notification.create({
         userId: previousOfficer.id,
-        type: 'client_reassigned',
+        type: 'general',
         title: 'Клиент переназначен',
-        message: `Клиент ${client.fullName} переназначен офицеру ${newOfficer.fullName}. Причина: ${reason || 'не указана'}`,
+        body: `Клиент ${client.fullName} переназначен офицеру ${newOfficer.fullName}. Причина: ${reason || 'не указана'}`,
         data: {
           clientId: client.id,
           clientName: client.fullName,
@@ -125,7 +125,7 @@ exports.reassignClient = async (req, res, next) => {
       userId: newOfficer.id,
       type: 'client_assigned',
       title: 'Новый клиент назначен',
-      message: `Вам назначен клиент ${client.fullName}. Срок: ${client.assignedHours} часов, осталось: ${client.assignedHours - client.completedHours} часов.`,
+      body: `Вам назначен клиент ${client.fullName}. Срок: ${client.assignedHours} часов, осталось: ${client.assignedHours - client.completedHours} часов.`,
       data: {
         clientId: client.id,
         clientName: client.fullName,
@@ -322,9 +322,9 @@ exports.reassignAllClients = async (req, res, next) => {
     // Уведомление новому офицеру
     await Notification.create({
       userId: newOfficer.id,
-      type: 'clients_assigned',
+      type: 'general',
       title: 'Назначены новые клиенты',
-      message: `Вам назначено ${clients.length} клиентов от офицера ${oldOfficer.fullName}. Причина: ${reassignmentReason}`,
+      body: `Вам назначено ${clients.length} клиентов от офицера ${oldOfficer.fullName}. Причина: ${reassignmentReason}`,
       data: {
         previousOfficerId: oldOfficer.id,
         previousOfficerName: oldOfficer.fullName,
