@@ -1,22 +1,26 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { useTheme } from '../hooks/useTheme';
 
 const Button = ({ title, onPress, loading = false, style, disabled = false }) => {
+  const { colors } = useTheme();
+
   return (
     <TouchableOpacity
       style={[
         styles.button,
+        { backgroundColor: colors.primary },
         style,
-        (disabled || loading) && styles.buttonDisabled,
+        (disabled || loading) && [styles.buttonDisabled, { backgroundColor: colors.disabled }],
       ]}
       onPress={onPress}
       disabled={disabled || loading}
       activeOpacity={0.7}
     >
       {loading ? (
-        <ActivityIndicator color="#fff" />
+        <ActivityIndicator color={colors.textOnPrimary} />
       ) : (
-        <Text style={styles.buttonText}>{title}</Text>
+        <Text style={[styles.buttonText, { color: colors.textOnPrimary }]}>{title}</Text>
       )}
     </TouchableOpacity>
   );
@@ -24,21 +28,17 @@ const Button = ({ title, onPress, loading = false, style, disabled = false }) =>
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: '#3b82f6',
     paddingVertical: 16,
     paddingHorizontal: 32,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    // Убираем shadow* пропсы для Android - они deprecated
-    elevation: 3, // Только это для Android
+    elevation: 3,
   },
   buttonDisabled: {
-    backgroundColor: '#9ca3af',
     elevation: 0,
   },
   buttonText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },

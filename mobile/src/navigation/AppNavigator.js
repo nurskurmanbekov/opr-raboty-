@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../hooks/useTheme';
 import LoginScreen from '../screens/LoginScreen';
 import HomeScreen from '../screens/HomeScreen';
 import WorkSessionScreen from '../screens/WorkSessionScreen';
@@ -15,6 +16,7 @@ const Tab = createBottomTabNavigator();
 
 const MainTabs = () => {
   const insets = useSafeAreaInsets();
+  const { colors, isDark } = useTheme();
 
   return (
     <Tab.Navigator
@@ -32,17 +34,19 @@ const MainTabs = () => {
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#3b82f6',
-        tabBarInactiveTintColor: 'gray',
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textTertiary,
         tabBarStyle: {
+          backgroundColor: colors.card,
+          borderTopColor: colors.border,
           paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
           paddingTop: 8,
           height: 60 + (insets.bottom > 0 ? insets.bottom : 0),
         },
         headerStyle: {
-          backgroundColor: '#3b82f6',
+          backgroundColor: colors.primary,
         },
-        headerTintColor: '#fff',
+        headerTintColor: colors.textOnPrimary,
         headerTitleStyle: {
           fontWeight: 'bold',
         },
@@ -76,14 +80,28 @@ const MainTabs = () => {
 };
 
 const AppNavigator = () => {
+  const { colors, isDark } = useTheme();
+
+  const navigationTheme = {
+    dark: isDark,
+    colors: {
+      primary: colors.primary,
+      background: colors.background,
+      card: colors.card,
+      text: colors.text,
+      border: colors.border,
+      notification: colors.error,
+    },
+  };
+
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={navigationTheme}>
       <Stack.Navigator
         screenOptions={{
           headerStyle: {
-            backgroundColor: '#3b82f6',
+            backgroundColor: colors.primary,
           },
-          headerTintColor: '#fff',
+          headerTintColor: colors.textOnPrimary,
           headerTitleStyle: {
             fontWeight: 'bold',
           },

@@ -98,7 +98,7 @@ const AddClientForm = ({ onClose, onSuccess, officers, initialData = null, isEdi
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+        <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg">
           {error}
         </div>
       )}
@@ -106,7 +106,7 @@ const AddClientForm = ({ onClose, onSuccess, officers, initialData = null, isEdi
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Full Name */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             <div className="flex items-center space-x-2">
               <User size={16} />
               <span>ФИО</span>
@@ -117,7 +117,7 @@ const AddClientForm = ({ onClose, onSuccess, officers, initialData = null, isEdi
             name="fullName"
             value={formData.fullName}
             onChange={handleChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="Иванов Иван Иванович"
             required
           />
@@ -125,7 +125,7 @@ const AddClientForm = ({ onClose, onSuccess, officers, initialData = null, isEdi
 
         {/* ID Number */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             <div className="flex items-center space-x-2">
               <Hash size={16} />
               <span>ID номер</span>
@@ -136,7 +136,7 @@ const AddClientForm = ({ onClose, onSuccess, officers, initialData = null, isEdi
             name="idNumber"
             value={formData.idNumber}
             onChange={handleChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="1234567890123"
             required
           />
@@ -144,7 +144,7 @@ const AddClientForm = ({ onClose, onSuccess, officers, initialData = null, isEdi
 
         {/* Phone */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             <div className="flex items-center space-x-2">
               <Phone size={16} />
               <span>Телефон</span>
@@ -155,7 +155,7 @@ const AddClientForm = ({ onClose, onSuccess, officers, initialData = null, isEdi
             name="phone"
             value={formData.phone}
             onChange={handleChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="+996555123456"
             required
           />
@@ -163,7 +163,7 @@ const AddClientForm = ({ onClose, onSuccess, officers, initialData = null, isEdi
 
         {/* Email */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             <div className="flex items-center space-x-2">
               <Mail size={16} />
               <span>Email (необязательно)</span>
@@ -174,14 +174,14 @@ const AddClientForm = ({ onClose, onSuccess, officers, initialData = null, isEdi
             name="email"
             value={formData.email}
             onChange={handleChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="client@example.com"
           />
         </div>
 
         {/* Password */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             <div className="flex items-center space-x-2">
               <span>🔒</span>
               <span>Пароль {isEdit && '(оставьте пустым, чтобы не менять)'}</span>
@@ -201,7 +201,7 @@ const AddClientForm = ({ onClose, onSuccess, officers, initialData = null, isEdi
 
         {/* District */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             <div className="flex items-center space-x-2">
               <MapPin size={16} />
               <span>Район</span>
@@ -211,7 +211,7 @@ const AddClientForm = ({ onClose, onSuccess, officers, initialData = null, isEdi
             name="districtId"
             value={formData.districtId}
             onChange={handleChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             required
           >
             <option value="">Выберите район</option>
@@ -225,7 +225,7 @@ const AddClientForm = ({ onClose, onSuccess, officers, initialData = null, isEdi
 
         {/* Assigned Hours */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             <div className="flex items-center space-x-2">
               <Clock size={16} />
               <span>Назначено часов</span>
@@ -236,7 +236,7 @@ const AddClientForm = ({ onClose, onSuccess, officers, initialData = null, isEdi
             name="assignedHours"
             value={formData.assignedHours}
             onChange={handleChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="100"
             required
             min="1"
@@ -245,7 +245,7 @@ const AddClientForm = ({ onClose, onSuccess, officers, initialData = null, isEdi
 
         {/* Start Date */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             <div className="flex items-center space-x-2">
               <Calendar size={16} />
               <span>Дата начала</span>
@@ -256,14 +256,14 @@ const AddClientForm = ({ onClose, onSuccess, officers, initialData = null, isEdi
             name="startDate"
             value={formData.startDate}
             onChange={handleChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             required
           />
         </div>
 
         {/* Officer */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             <div className="flex items-center space-x-2">
               <User size={16} />
               <span>Куратор</span>
@@ -273,7 +273,7 @@ const AddClientForm = ({ onClose, onSuccess, officers, initialData = null, isEdi
             name="officerId"
             value={formData.officerId}
             onChange={handleChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             required
           >
             <option value="">Выберите куратора</option>
@@ -287,7 +287,7 @@ const AddClientForm = ({ onClose, onSuccess, officers, initialData = null, isEdi
 
         {/* Work Location */}
         <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             <div className="flex items-center space-x-2">
               <MapPin size={16} />
               <span>Место работы</span>
@@ -298,14 +298,14 @@ const AddClientForm = ({ onClose, onSuccess, officers, initialData = null, isEdi
             name="workLocation"
             value={formData.workLocation}
             onChange={handleChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="Городской парк, ул. Ленина 123"
           />
         </div>
 
         {/* Notes */}
         <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             <div className="flex items-center space-x-2">
               <FileText size={16} />
               <span>Примечания</span>
@@ -316,7 +316,7 @@ const AddClientForm = ({ onClose, onSuccess, officers, initialData = null, isEdi
             value={formData.notes}
             onChange={handleChange}
             rows={3}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="Дополнительная информация..."
           />
         </div>
@@ -326,7 +326,7 @@ const AddClientForm = ({ onClose, onSuccess, officers, initialData = null, isEdi
         <button
           type="button"
           onClick={onClose}
-          className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+          className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 transition"
         >
           Отмена
         </button>

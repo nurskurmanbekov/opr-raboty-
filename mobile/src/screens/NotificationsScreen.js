@@ -9,6 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from '../hooks/useTheme';
 import { notificationsAPI } from '../api/api';
 
 const NOTIFICATION_ICONS = {
@@ -28,6 +29,7 @@ const NotificationsScreen = ({ navigation }) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const { colors } = useTheme();
 
   useEffect(() => {
     fetchNotifications();
@@ -94,39 +96,46 @@ const NotificationsScreen = ({ navigation }) => {
 
   const renderNotification = ({ item }) => (
     <TouchableOpacity
-      style={[styles.notificationCard, !item.isRead && styles.unreadCard]}
+      style={[
+        styles.notificationCard,
+        { backgroundColor: colors.card },
+        !item.isRead && [styles.unreadCard, {
+          borderLeftColor: colors.primary,
+          backgroundColor: colors.infoLight
+        }]
+      ]}
       onPress={() => handleMarkAsRead(item.id)}
     >
       <View style={styles.notificationContent}>
         <Text style={styles.notificationIcon}>{getNotificationIcon(item.type)}</Text>
         <View style={styles.notificationText}>
-          <Text style={styles.notificationTitle}>{item.title || 'Уведомление'}</Text>
-          <Text style={styles.notificationBody}>{item.body}</Text>
-          <Text style={styles.notificationTime}>
+          <Text style={[styles.notificationTitle, { color: colors.text }]}>{item.title || 'Уведомление'}</Text>
+          <Text style={[styles.notificationBody, { color: colors.textSecondary }]}>{item.body}</Text>
+          <Text style={[styles.notificationTime, { color: colors.textTertiary }]}>
             {new Date(item.createdAt).toLocaleString('ru-RU')}
           </Text>
         </View>
-        {!item.isRead && <View style={styles.unreadDot} />}
+        {!item.isRead && <View style={[styles.unreadDot, { backgroundColor: colors.primary }]} />}
       </View>
     </TouchableOpacity>
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.primary }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Уведомления</Text>
+      <View style={[styles.header, { backgroundColor: colors.primary }]}>
+        <Text style={[styles.headerTitle, { color: colors.textOnPrimary }]}>Уведомления</Text>
         {unreadCount > 0 && (
-          <TouchableOpacity style={styles.markAllButton} onPress={handleMarkAllAsRead}>
-            <Text style={styles.markAllText}>Прочитать все</Text>
+          <TouchableOpacity style={[styles.markAllButton, { backgroundColor: colors.overlayLight }]} onPress={handleMarkAllAsRead}>
+            <Text style={[styles.markAllText, { color: colors.textOnPrimary }]}>Прочитать все</Text>
           </TouchableOpacity>
         )}
       </View>
 
       {/* Unread Count */}
       {unreadCount > 0 && (
-        <View style={styles.unreadBanner}>
-          <Text style={styles.unreadText}>
+        <View style={[styles.unreadBanner, { backgroundColor: colors.infoBackground }]}>
+          <Text style={[styles.unreadText, { color: colors.infoText }]}>
             {unreadCount} {unreadCount === 1 ? 'непрочитанное' : 'непрочитанных'}
           </Text>
         </View>
@@ -134,6 +143,7 @@ const NotificationsScreen = ({ navigation }) => {
 
       {/* Notifications List */}
       <FlatList
+        style={{ backgroundColor: colors.background }}
         data={notifications}
         renderItem={renderNotification}
         keyExtractor={(item) => item.id.toString()}
@@ -144,7 +154,7 @@ const NotificationsScreen = ({ navigation }) => {
           !loading && (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyIcon}>📬</Text>
-              <Text style={styles.emptyText}>Нет уведомлений</Text>
+              <Text style={[styles.emptyText, { color: colors.textTertiary }]}>Нет уведомлений</Text>
             </View>
           )
         }
@@ -157,10 +167,8 @@ const NotificationsScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#3b82f6',
   },
   header: {
-    backgroundColor: '#3b82f6',
     padding: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -169,30 +177,24 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#fff',
   },
   markAllButton: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: 8,
   },
   markAllText: {
-    color: '#fff',
     fontSize: 14,
     fontWeight: '600',
   },
   unreadBanner: {
-    backgroundColor: '#dbeafe',
     padding: 12,
     alignItems: 'center',
   },
   unreadText: {
-    color: '#1e40af',
     fontWeight: '600',
   },
   notificationCard: {
-    backgroundColor: '#fff',
     marginHorizontal: 16,
     marginVertical: 8,
     padding: 16,
@@ -205,8 +207,6 @@ const styles = StyleSheet.create({
   },
   unreadCard: {
     borderLeftWidth: 4,
-    borderLeftColor: '#3b82f6',
-    backgroundColor: '#eff6ff',
   },
   notificationContent: {
     flexDirection: 'row',
@@ -222,23 +222,19 @@ const styles = StyleSheet.create({
   notificationTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1f2937',
     marginBottom: 4,
   },
   notificationBody: {
     fontSize: 14,
-    color: '#6b7280',
     marginBottom: 8,
   },
   notificationTime: {
     fontSize: 12,
-    color: '#9ca3af',
   },
   unreadDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#3b82f6',
     marginLeft: 8,
   },
   emptyContainer: {
@@ -256,7 +252,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#9ca3af',
   },
 });
 

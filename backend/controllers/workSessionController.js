@@ -1,13 +1,23 @@
-const { WorkSession, Client, Photo, User, LocationHistory } = require('../models');
+const { WorkSession, Client, Photo, User, LocationHistory, FaceVerification } = require('../models');
 const { Op } = require('sequelize');
 const path = require('path');
+const faceRecognitionService = require('../services/faceRecognitionService');
+const fs = require('fs').promises;
 
-// @desc    Start work session
+// @desc    Start work session with Face ID verification
 // @route   POST /api/work-sessions/start
 // @access  Private (Client only)
 exports.startWorkSession = async (req, res, next) => {
   try {
-    const { clientId, startLatitude, startLongitude, workLocation } = req.body;
+    const { clientId, startLatitude, startLongitude, workLocation, biometricType, deviceId } = req.body;
+
+    // Обязательная проверка: должно быть фото для Face ID
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: '❌ Фото для Face ID верификации обязательно! Это требование антикоррупционной защиты.'
+      });
+    }
 
     // 🔒 SECURITY: Only clients can start sessions
     if (req.user.role !== 'client') {
@@ -36,9 +46,90 @@ exports.startWorkSession = async (req, res, next) => {
     if (activeSession) {
       return res.status(400).json({
         success: false,
-        message: 'You already have an active work session'
+        message: 'У вас уже есть активная рабочая сессия'
       });
     }
+
+    // ⭐ КРИТИЧНО: Проверка Face ID зарегистрирован ли
+    const faceVerification = await FaceVerification.findOne({
+      where: {
+        userId: clientId,
+        verificationType: 'registration',
+        verificationStatus: 'verified'
+      }
+    });
+
+    if (!faceVerification) {
+      return res.status(400).json({
+        success: false,
+        message: '❌ Face ID не зарегистрирован. Зарегистрируйте Face ID в настройках профиля.',
+        requireFaceRegistration: true
+      });
+    }
+
+    // ⭐ КРИТИЧНО: Верификация лица через CompreFace
+    console.log(`🔒 Face ID verification for client ${clientId}...`);
+
+    const verificationResult = await faceRecognitionService.verifyFace(
+      clientId,
+      req.file.buffer,
+      `session-start-${Date.now()}.jpg`
+    );
+
+    // Сохранить фото верификации
+    const uploadDir = path.join(__dirname, '../uploads/sessions');
+    await fs.mkdir(uploadDir, { recursive: true });
+
+    const verificationPhotoFilename = `${clientId}-verify-${Date.now()}.jpg`;
+    const verificationPhotoPath = path.join(uploadDir, verificationPhotoFilename);
+    await fs.writeFile(verificationPhotoPath, req.file.buffer);
+
+    const verificationPhotoUrl = `/uploads/sessions/${verificationPhotoFilename}`;
+
+    // Создать запись о попытке верификации
+    const verificationAttempt = await FaceVerification.create({
+      userId: clientId,
+      faceImageUrl: verificationPhotoUrl,
+      verificationType: 'check_in',
+      verificationStatus: verificationResult.verified ? 'verified' : 'failed',
+      matchScore: verificationResult.similarity,
+      matchThreshold: verificationResult.threshold || 0.85,
+      isMatch: verificationResult.verified,
+      metadata: {
+        age: verificationResult.age,
+        gender: verificationResult.gender,
+        boundingBox: verificationResult.boundingBox,
+        context: 'work_session_start',
+        confidence: verificationResult.confidence
+      },
+      verifiedAt: verificationResult.verified ? new Date() : null
+    });
+
+    // ⚠️ КРИТИЧНО: Если Face ID НЕ ПРОШЕЛ - ЗАПРЕТИТЬ старт!
+    if (!verificationResult.verified) {
+      console.warn(`❌ Face verification FAILED for client ${clientId}:`, {
+        similarity: verificationResult.similarity,
+        threshold: verificationResult.threshold,
+        reason: verificationResult.reason
+      });
+
+      // Удалить фото (опционально, можно оставить для аудита)
+      // await fs.unlink(verificationPhotoPath).catch(() => {});
+
+      return res.status(403).json({
+        success: false,
+        message: '❌ Face ID верификация не прошла! Ваше лицо не совпадает с зарегистрированным.',
+        faceVerificationFailed: true,
+        details: {
+          similarity: verificationResult.similarity,
+          threshold: verificationResult.threshold,
+          confidence: verificationResult.confidence
+        }
+      });
+    }
+
+    // ✅ Face ID ПРОШЕЛ - создаем сессию
+    console.log(`✅ Face verification SUCCESS for client ${clientId}: ${(verificationResult.similarity * 100).toFixed(1)}%`);
 
     const session = await WorkSession.create({
       clientId,
@@ -46,15 +137,30 @@ exports.startWorkSession = async (req, res, next) => {
       startLatitude,
       startLongitude,
       workLocation,
-      status: 'in_progress'
+      status: 'in_progress',
+      // Face ID данные
+      faceVerified: true,
+      verificationPhotoUrl: verificationPhotoUrl,
+      faceVerificationAttemptId: verificationAttempt.id,
+      biometricType: biometricType || 'FaceID',
+      deviceId: deviceId,
+      faceVerificationConfidence: verificationResult.similarity
     });
 
     res.status(201).json({
       success: true,
-      message: 'Work session started successfully',
-      data: session
+      message: '✅ Рабочая сессия начата! Face ID верифицирован.',
+      data: {
+        ...session.toJSON(),
+        faceVerification: {
+          verified: true,
+          confidence: verificationResult.similarity,
+          similarity: (verificationResult.similarity * 100).toFixed(1) + '%'
+        }
+      }
     });
   } catch (error) {
+    console.error('Start work session error:', error);
     next(error);
   }
 };

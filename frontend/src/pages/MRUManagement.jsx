@@ -123,7 +123,7 @@ const MRUManagement = () => {
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             Управление МРУ
           </h1>
-          <p className="text-gray-600 mt-2">Межрайонные управления пробации</p>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">Межрайонные управления пробации</p>
         </div>
         <motion.button
           whileHover={{ scale: 1.05 }}
@@ -150,7 +150,7 @@ const MRUManagement = () => {
             placeholder="Поиск по названию, региону или коду..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
       </motion.div>
@@ -159,15 +159,15 @@ const MRUManagement = () => {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="bg-white p-6 rounded-xl shadow-md animate-pulse">
+            <div key={i} className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-md animate-pulse">
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
+                <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
                 <div className="flex-1">
-                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div>
+                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
                 </div>
               </div>
-              <div className="h-3 bg-gray-200 rounded w-full"></div>
+              <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
             </div>
           ))}
         </div>
@@ -180,7 +180,7 @@ const MRUManagement = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
               whileHover={{ y: -5, scale: 1.02 }}
-              className="bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition-all border border-gray-100"
+              className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-md hover:shadow-xl transition-all border border-gray-100 dark:border-gray-800"
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center space-x-3">
@@ -188,28 +188,28 @@ const MRUManagement = () => {
                     <Building2 className="text-white" size={24} />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-gray-800">{mru.name}</h3>
-                    <p className="text-sm text-gray-500">{mru.region}</p>
+                    <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">{mru.name}</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{mru.region}</p>
                   </div>
                 </div>
               </div>
 
               {mru.code && (
-                <div className="mb-4 inline-block px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-mono">
+                <div className="mb-4 inline-block px-3 py-1 bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 rounded-full text-xs font-mono">
                   {mru.code}
                 </div>
               )}
 
-              <div className="text-sm text-gray-600 mb-4">
-                <p>Районов: <span className="font-semibold text-gray-800">{mru.districts?.length || 0}</span></p>
+              <div className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                <p>Районов: <span className="font-semibold text-gray-800 dark:text-gray-100">{mru.districts?.length || 0}</span></p>
               </div>
 
-              <div className="flex space-x-2 pt-4 border-t border-gray-100">
+              <div className="flex space-x-2 pt-4 border-t border-gray-100 dark:border-gray-700">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => handleShowStats(mru)}
-                  className="flex-1 flex items-center justify-center space-x-1 text-green-600 hover:bg-green-50 py-2 rounded-lg transition"
+                  className="flex-1 flex items-center justify-center space-x-1 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950 py-2 rounded-lg transition"
                   title="Статистика"
                 >
                   <BarChart size={16} />
@@ -219,7 +219,7 @@ const MRUManagement = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => openEditModal(mru)}
-                  className="flex-1 flex items-center justify-center space-x-1 text-blue-600 hover:bg-blue-50 py-2 rounded-lg transition"
+                  className="flex-1 flex items-center justify-center space-x-1 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950 py-2 rounded-lg transition"
                   title="Редактировать"
                 >
                   <Edit size={16} />
@@ -229,7 +229,7 @@ const MRUManagement = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setDeleteModal({ open: true, mru })}
-                  className="flex items-center justify-center text-red-600 hover:bg-red-50 p-2 rounded-lg transition"
+                  className="flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 p-2 rounded-lg transition"
                   title="Удалить"
                 >
                   <Trash2 size={16} />
@@ -246,9 +246,9 @@ const MRUManagement = () => {
           animate={{ opacity: 1 }}
           className="text-center py-16"
         >
-          <Building2 className="mx-auto text-gray-300 mb-4" size={64} />
-          <h3 className="text-xl font-semibold text-gray-600 mb-2">МРУ не найдены</h3>
-          <p className="text-gray-500 mb-6">Попробуйте изменить критерии поиска</p>
+          <Building2 className="mx-auto text-gray-300 dark:text-gray-600 mb-4" size={64} />
+          <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-400 mb-2">МРУ не найдены</h3>
+          <p className="text-gray-500 dark:text-gray-500 mb-6">Попробуйте изменить критерии поиска</p>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -268,7 +268,7 @@ const MRUManagement = () => {
       >
         <form onSubmit={handleCreateMRU} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Название МРУ <span className="text-red-500">*</span>
             </label>
             <input
@@ -277,12 +277,12 @@ const MRUManagement = () => {
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Например: МРУ №1"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Регион <span className="text-red-500">*</span>
             </label>
             <input
@@ -291,12 +291,12 @@ const MRUManagement = () => {
               value={formData.region}
               onChange={(e) => setFormData({ ...formData, region: e.target.value })}
               placeholder="Например: Чуйская область"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Код МРУ
             </label>
             <input
@@ -304,7 +304,7 @@ const MRUManagement = () => {
               value={formData.code}
               onChange={(e) => setFormData({ ...formData, code: e.target.value })}
               placeholder="Например: MRU-01"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
@@ -320,7 +320,7 @@ const MRUManagement = () => {
             <button
               type="button"
               onClick={() => setShowCreateModal(false)}
-              className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition"
+              className="flex-1 bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-slate-600 transition"
             >
               Отмена
             </button>
@@ -340,7 +340,7 @@ const MRUManagement = () => {
       >
         <form onSubmit={handleUpdateMRU} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Название МРУ <span className="text-red-500">*</span>
             </label>
             <input
@@ -348,12 +348,12 @@ const MRUManagement = () => {
               required
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Регион <span className="text-red-500">*</span>
             </label>
             <input
@@ -361,19 +361,19 @@ const MRUManagement = () => {
               required
               value={formData.region}
               onChange={(e) => setFormData({ ...formData, region: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Код МРУ
             </label>
             <input
               type="text"
               value={formData.code}
               onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
@@ -393,7 +393,7 @@ const MRUManagement = () => {
                 setSelectedMRU(null);
                 setFormData({ name: '', region: '', code: '' });
               }}
-              className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition"
+              className="flex-1 bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-slate-600 transition"
             >
               Отмена
             </button>
@@ -414,23 +414,42 @@ const MRUManagement = () => {
         {stats && (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              {[
-                { label: 'Районов', value: stats.districtsCount, color: 'blue' },
-                { label: 'Офицеров', value: stats.officersCount, color: 'green' },
-                { label: 'Клиентов', value: stats.clientsCount, color: 'purple' },
-                { label: 'Активных клиентов', value: stats.activeClientsCount, color: 'orange' }
-              ].map((stat, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: i * 0.1 }}
-                  className={`bg-${stat.color}-50 p-4 rounded-lg border border-${stat.color}-200`}
-                >
-                  <p className={`text-sm text-${stat.color}-600`}>{stat.label}</p>
-                  <p className={`text-2xl font-bold text-${stat.color}-600`}>{stat.value}</p>
-                </motion.div>
-              ))}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0 }}
+                className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg border border-blue-200 dark:border-blue-800"
+              >
+                <p className="text-sm text-blue-600 dark:text-blue-400">Районов</p>
+                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.districtsCount}</p>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.1 }}
+                className="bg-green-50 dark:bg-green-950 p-4 rounded-lg border border-green-200 dark:border-green-800"
+              >
+                <p className="text-sm text-green-600 dark:text-green-400">Офицеров</p>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.officersCount}</p>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 }}
+                className="bg-purple-50 dark:bg-purple-950 p-4 rounded-lg border border-purple-200 dark:border-purple-800"
+              >
+                <p className="text-sm text-purple-600 dark:text-purple-400">Клиентов</p>
+                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{stats.clientsCount}</p>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.3 }}
+                className="bg-orange-50 dark:bg-orange-950 p-4 rounded-lg border border-orange-200 dark:border-orange-800"
+              >
+                <p className="text-sm text-orange-600 dark:text-orange-400">Активных клиентов</p>
+                <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{stats.activeClientsCount}</p>
+              </motion.div>
             </div>
 
             <button
@@ -439,7 +458,7 @@ const MRUManagement = () => {
                 setSelectedMRU(null);
                 setStats(null);
               }}
-              className="w-full bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition"
+              className="w-full bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-slate-600 transition"
             >
               Закрыть
             </button>
@@ -454,11 +473,11 @@ const MRUManagement = () => {
         title="Подтверждение удаления"
       >
         <div className="space-y-4">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-gray-700">
+          <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <p className="text-gray-700 dark:text-gray-300">
               Вы действительно хотите удалить МРУ <strong>{deleteModal.mru?.name}</strong>?
             </p>
-            <p className="text-sm text-red-600 mt-2">
+            <p className="text-sm text-red-600 dark:text-red-400 mt-2">
               Это действие необратимо. Убедитесь, что в МРУ нет активных районов и офицеров.
             </p>
           </div>
@@ -473,7 +492,7 @@ const MRUManagement = () => {
             </motion.button>
             <button
               onClick={() => setDeleteModal({ open: false, mru: null })}
-              className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition"
+              className="flex-1 bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-slate-600 transition"
             >
               Отмена
             </button>

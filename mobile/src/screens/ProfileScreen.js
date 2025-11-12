@@ -8,6 +8,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { syncAPI } from '../api/api';
 import Button from '../components/Button';
@@ -76,15 +77,15 @@ const ProfileScreen = ({ navigation }) => {
 
   if (!user) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <Text>Загрузка...</Text>
+      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <Text style={{ color: colors.text }}>Загрузка...</Text>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView style={styles.scrollView}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.primary }]} edges={['top']}>
+      <ScrollView style={[styles.scrollView, { backgroundColor: colors.background }]}>
         {/* Profile Header */}
         <View style={styles.header}>
           <View style={styles.avatar}>
@@ -174,7 +175,7 @@ const ProfileScreen = ({ navigation }) => {
                 title="Синхронизировать сейчас"
                 onPress={handleSyncNow}
                 loading={loading}
-                style={styles.syncButton}
+                style={[styles.syncButton, { backgroundColor: colors.success }]}
               />
             </View>
           </View>
@@ -233,7 +234,6 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#fff',
   },
   name: {
     fontSize: 22,
@@ -367,6 +367,114 @@ const styles = StyleSheet.create({
   footerVersion: {
     fontSize: 10,
     color: '#ccc',
+  },
+  themeOptions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 16,
+  },
+  themeOption: {
+    flex: 1,
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    position: 'relative',
+  },
+  themeIcon: {
+    marginBottom: 8,
+  },
+  themeLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  checkmark: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  themeHint: {
+    fontSize: 12,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  faceIdRegistered: {
+    padding: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  faceIdRegisteredIcon: {
+    marginBottom: 12,
+  },
+  faceIdRegisteredText: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  faceIdRegisteredHint: {
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  faceIdWarning: {
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  faceIdWarningText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  faceIdWarningHint: {
+    fontSize: 14,
+  },
+  faceIdPreview: {
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  faceIdImage: {
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    borderWidth: 4,
+    borderColor: '#10b981',
+  },
+  faceIdReady: {
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  faceIdReadyText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  faceIdButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  retakeButtonSmall: {
+    flex: 1,
+  },
+  registerButton: {
+    flex: 2,
+  },
+  faceIdInstructions: {
+    marginBottom: 16,
+  },
+  instructionStep: {
+    fontSize: 14,
+    marginBottom: 8,
+    lineHeight: 20,
+  },
+  faceIdButton: {
+    marginTop: 8,
   },
 });
 

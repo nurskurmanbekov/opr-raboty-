@@ -3,30 +3,56 @@ const router = express.Router();
 const {
   registerFace,
   verifyFace,
-  getVerificationHistory,
-  getVerificationStats,
-  getVerificationById,
-  deleteFaceRegistration
+  getFaceStatus,
+  deleteFaceRegistration,
+  getVerificationHistory
 } = require('../controllers/faceVerificationController');
-const { protect } = require('../middleware/auth');
-const { requireRole } = require('../middleware/roleCheck');
+const { protect, authorize } = require('../middleware/auth');
+const upload = require('../middleware/upload');
 
-router.use(protect); // All routes need authentication
+/**
+ * @route   POST /api/face-verification/register
+ * @desc    Регистрация Face ID клиента
+ * @access  Private (Client or Admin)
+ * @note    Upload middleware is handled inside controller (expects 'faceImage' field)
+ */
+router.post(
+  '/register',
+  protect,
+  registerFace
+);
 
-// Face registration and verification
-router.post('/register', registerFace);
-router.post('/verify', verifyFace);
+/**
+ * @route   POST /api/face-verification/verify
+ * @desc    Верификация лица при старте рабочей сессии
+ * @access  Private (Client)
+ * @note    Upload middleware is handled inside controller (expects 'faceImage' field)
+ */
+router.post(
+  '/verify',
+  protect,
+  verifyFace
+);
 
-// Verification history and stats
-router.get('/history', getVerificationHistory);
-router.get('/history/:userId', requireRole('superadmin', 'regional_admin', 'district_admin', 'officer'), getVerificationHistory);
-router.get('/stats', getVerificationStats);
-router.get('/stats/:userId', requireRole('superadmin', 'regional_admin', 'district_admin', 'officer'), getVerificationStats);
+/**
+ * @route   GET /api/face-verification/status
+ * @desc    Получить статус регистрации Face ID
+ * @access  Private
+ */
+router.get('/status', protect, getFaceStatus);
 
-// Get specific verification
-router.get('/:id', getVerificationById);
+/**
+ * @route   DELETE /api/face-verification/:clientId
+ * @desc    Удалить регистрацию Face ID
+ * @access  Private (Admin or Self)
+ */
+router.delete('/:clientId', protect, deleteFaceRegistration);
 
-// Admin: Delete face registration
-router.delete('/:userId', requireRole('superadmin', 'district_admin'), deleteFaceRegistration);
+/**
+ * @route   GET /api/face-verification/history
+ * @desc    История верификаций Face ID
+ * @access  Private
+ */
+router.get('/history', protect, authorize('superadmin', 'district_admin', 'officer'), getVerificationHistory);
 
 module.exports = router;

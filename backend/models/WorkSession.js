@@ -66,6 +66,37 @@ const WorkSession = sequelize.define('WorkSession', {
   verifiedAt: {
     type: DataTypes.DATE,
     allowNull: true
+  },
+  // Face ID Verification Fields
+  faceVerified: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    allowNull: false
+  },
+  verificationPhotoUrl: {
+    type: DataTypes.STRING(500),
+    allowNull: true,
+    comment: 'Selfie photo taken at session start for face verification'
+  },
+  faceVerificationAttemptId: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    comment: 'Reference to FaceVerification record'
+  },
+  biometricType: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+    comment: 'Type of biometric used (FaceID, TouchID, etc)'
+  },
+  deviceId: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+    comment: 'Device ID used for verification'
+  },
+  faceVerificationConfidence: {
+    type: DataTypes.FLOAT,
+    allowNull: true,
+    comment: 'Confidence score from face verification (0-1)'
   }
 }, {
   timestamps: true
