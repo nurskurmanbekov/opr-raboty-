@@ -12,9 +12,10 @@ import { Platform } from 'react-native';
 //
 // ВАЖНО: Компьютер и телефон должны быть в одной WiFi сети!
 
-// Production API URL - внешний IP с NAT на MikroTik
-// 85.113.27.42:8090 -> 10.99.7.91:5000
-const API_URL = 'http://85.113.27.42:8090/api';
+// Используем переменную окружения или fallback для разработки
+// Production: установите EXPO_PUBLIC_API_URL в .env файле
+// Development: автоматически использует localhost
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 // Debug: показываем используемый URL в консоли
 console.log('📡 Mobile API URL:', API_URL);
