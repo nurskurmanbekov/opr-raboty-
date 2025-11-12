@@ -1,91 +1,154 @@
 const { AuditLog } = require('../models');
 
-const auditLogger = (resource) => {
+/**
+ * Helper функция для логирования действий
+ * Используется в контроллерах для явного логирования
+ */
+const logAction = async ({
+  userId,
+  userName,
+  userRole,
+  action,
+  entityType,
+  entityId,
+  entityName,
+  changes = {},
+  description,
+  ipAddress,
+  userAgent,
+  status = 'success',
+  errorMessage = null
+}) => {
+  try {
+    await AuditLog.create({
+      userId,
+      userName,
+      userRole,
+      action,
+      entityType,
+      entityId,
+      entityName,
+      changes,
+      description,
+      ipAddress,
+      userAgent,
+      status,
+      errorMessage
+    });
+  } catch (error) {
+    console.error('❌ Ошибка при логировании действия:', error);
+    // Не прерываем основной процесс, если логирование не удалось
+  }
+};
+
+/**
+ * Middleware для автоматического логирования всех действий
+ * Добавляется к роутам, которые нужно отслеживать
+ */
+const auditMiddleware = (action, entityType) => {
   return async (req, res, next) => {
-    // Store original methods
-    const originalSend = res.send;
-    const originalJson = res.json;
+    // Сохраняем оригинальный res.json
+    const originalJson = res.json.bind(res);
 
-    // Capture old value for PUT/PATCH requests
-    let oldValue = null;
-    if (['PUT', 'PATCH'].includes(req.method) && req.params.id) {
-      try {
-        const Model = require(`../models/${resource}`);
-        const record = await Model.findByPk(req.params.id);
-        if (record) {
-          oldValue = record.toJSON();
-        }
-      } catch (error) {
-        // Continue even if we can't get old value
-      }
-    }
-
-    // Override res.send
-    res.send = function (data) {
-      // Only log successful modifications
+    // Переопределяем res.json для перехвата успешных ответов
+    res.json = function(data) {
+      // Логируем только успешные операции (2xx статус коды)
       if (res.statusCode >= 200 && res.statusCode < 300) {
-        if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-          // Log asynchronously without blocking response
-          setImmediate(async () => {
-            try {
-              let action = req.method.toLowerCase();
-              if (action === 'post') action = 'create';
-              if (action === 'put' || action === 'patch') action = 'update';
+        // Асинхронно логируем (не блокируем ответ)
+        setImmediate(async () => {
+          try {
+            const user = req.user;
+            if (!user) return; // Пропускаем если нет пользователя
 
-              await AuditLog.create({
-                userId: req.user?.id,
-                action,
-                resource,
-                resourceId: req.params.id || null,
-                oldValue,
-                newValue: typeof data === 'string' ? JSON.parse(data) : data,
-                ipAddress: req.ip || req.connection.remoteAddress,
-                userAgent: req.get('user-agent')
-              });
-            } catch (error) {
-              console.error('Audit log error:', error);
+            // Извлекаем информацию о сущности из ответа
+            let entityId = null;
+            let entityName = null;
+
+            if (data && data.data) {
+              // Если в ответе есть объект с id и name/fullName
+              if (data.data.id) {
+                entityId = data.data.id;
+                entityName = data.data.fullName || data.data.name || null;
+              }
+              // Или если это клиент
+              if (data.data.client) {
+                entityId = data.data.client.id;
+                entityName = data.data.client.fullName;
+              }
             }
-          });
-        }
+
+            // Или извлекаем из параметров URL
+            if (!entityId && req.params.id) {
+              entityId = req.params.id;
+            }
+            if (!entityId && req.params.clientId) {
+              entityId = req.params.clientId;
+            }
+
+            await logAction({
+              userId: user.id || user.dataValues?.id,
+              userName: user.fullName || user.dataValues?.fullName,
+              userRole: user.role || user.dataValues?.role,
+              action,
+              entityType,
+              entityId,
+              entityName,
+              changes: req.body || {},
+              description: `${action} ${entityType}`,
+              ipAddress: req.ip || req.connection.remoteAddress,
+              userAgent: req.get('User-Agent'),
+              status: 'success'
+            });
+          } catch (error) {
+            console.error('❌ Ошибка в audit middleware:', error);
+          }
+        });
       }
 
-      originalSend.call(this, data);
-    };
-
-    // Override res.json
-    res.json = function (data) {
-      // Only log successful modifications
-      if (res.statusCode >= 200 && res.statusCode < 300) {
-        if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-          // Log asynchronously without blocking response
-          setImmediate(async () => {
-            try {
-              let action = req.method.toLowerCase();
-              if (action === 'post') action = 'create';
-              if (action === 'put' || action === 'patch') action = 'update';
-
-              await AuditLog.create({
-                userId: req.user?.id,
-                action,
-                resource,
-                resourceId: req.params.id || null,
-                oldValue,
-                newValue: data,
-                ipAddress: req.ip || req.connection.remoteAddress,
-                userAgent: req.get('user-agent')
-              });
-            } catch (error) {
-              console.error('Audit log error:', error);
-            }
-          });
-        }
-      }
-
-      originalJson.call(this, data);
+      // Вызываем оригинальный res.json
+      return originalJson(data);
     };
 
     next();
   };
 };
 
-module.exports = auditLogger;
+/**
+ * Автоматическое определение action по HTTP методу
+ */
+const getActionByMethod = (method) => {
+  const methodMap = {
+    POST: 'create',
+    PUT: 'update',
+    PATCH: 'update',
+    DELETE: 'delete',
+    GET: 'export' // для экспорта данных
+  };
+  return methodMap[method] || 'update';
+};
+
+/**
+ * Универсальный middleware для автоматического логирования
+ * Использует req.method и req.baseUrl для определения действия
+ */
+const autoAudit = (entityType) => {
+  return async (req, res, next) => {
+    const action = getActionByMethod(req.method);
+    return auditMiddleware(action, entityType)(req, res, next);
+  };
+};
+
+/**
+ * Старый auditLogger для обратной совместимости
+ * @deprecated Используйте autoAudit или auditMiddleware
+ */
+const auditLogger = (resource) => {
+  return autoAudit(resource);
+};
+
+module.exports = {
+  logAction,
+  auditMiddleware,
+  autoAudit,
+  auditLogger // для обратной совместимости
+};

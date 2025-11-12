@@ -1,23 +1,57 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { User, Mail, Phone, Hash, MapPin, Calendar, Clock, FileText } from 'lucide-react';
 import api from '../api/axios';
+import { districtsAPI } from '../api/api';
 
-const AddClientForm = ({ onClose, onSuccess, officers }) => {
+const AddClientForm = ({ onClose, onSuccess, officers, initialData = null, isEdit = false }) => {
   const [formData, setFormData] = useState({
     fullName: '',
     idNumber: '',
     phone: '',
     email: '',
     password: '',
-    district: '',
+    districtId: '',
     assignedHours: '',
     startDate: '',
     officerId: '',
     workLocation: '',
     notes: ''
   });
+  const [districts, setDistricts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    fetchDistricts();
+  }, []);
+
+  // Заполняем форму при редактировании
+  useEffect(() => {
+    if (initialData && isEdit) {
+      setFormData({
+        fullName: initialData.fullName || '',
+        idNumber: initialData.idNumber || '',
+        phone: initialData.phone || '',
+        email: initialData.email || '',
+        password: '', // Пароль не заполняем при редактировании
+        districtId: initialData.districtId || '',
+        assignedHours: initialData.assignedHours || '',
+        startDate: initialData.startDate ? initialData.startDate.split('T')[0] : '',
+        officerId: initialData.officerId || '',
+        workLocation: initialData.workLocation || '',
+        notes: initialData.notes || ''
+      });
+    }
+  }, [initialData, isEdit]);
+
+  const fetchDistricts = async () => {
+    try {
+      const response = await districtsAPI.getAllDistricts();
+      setDistricts(response.data || []);
+    } catch (error) {
+      console.error('Error fetching districts:', error);
+    }
+  };
 
   const handleChange = (e) => {
     setFormData({
@@ -32,15 +66,31 @@ const AddClientForm = ({ onClose, onSuccess, officers }) => {
     setLoading(true);
 
     try {
-      await api.post('/clients', {
+      const payload = {
         ...formData,
         assignedHours: parseInt(formData.assignedHours)
-      });
-      
+      };
+
+      // Если редактируем и пароль пустой - не отправляем его
+      if (isEdit && !formData.password) {
+        delete payload.password;
+      }
+
+      if (isEdit && initialData?.id) {
+        // Режим редактирования - PUT запрос
+        await api.put(`/clients/${initialData.id}`, payload);
+      } else {
+        // Режим создания - POST запрос
+        await api.post('/clients', payload);
+      }
+
       onSuccess();
       onClose();
     } catch (error) {
-      setError(error.response?.data?.message || 'Ошибка при создании клиента');
+      const errorMessage = isEdit
+        ? 'Ошибка при обновлении клиента'
+        : 'Ошибка при создании клиента';
+      setError(error.response?.data?.message || errorMessage);
       setLoading(false);
     }
   };
@@ -134,7 +184,7 @@ const AddClientForm = ({ onClose, onSuccess, officers }) => {
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             <div className="flex items-center space-x-2">
               <span>🔒</span>
-              <span>Пароль</span>
+              <span>Пароль {isEdit && '(оставьте пустым, чтобы не менять)'}</span>
             </div>
           </label>
           <input
@@ -142,9 +192,9 @@ const AddClientForm = ({ onClose, onSuccess, officers }) => {
             name="password"
             value={formData.password}
             onChange={handleChange}
-            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="Минимум 6 символов"
-            required
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder={isEdit ? "Оставьте пустым, чтобы не менять" : "Минимум 6 символов"}
+            required={!isEdit}
             minLength={6}
           />
         </div>
@@ -158,20 +208,18 @@ const AddClientForm = ({ onClose, onSuccess, officers }) => {
             </div>
           </label>
           <select
-            name="district"
-            value={formData.district}
+            name="districtId"
+            value={formData.districtId}
             onChange={handleChange}
             className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             required
           >
             <option value="">Выберите район</option>
-            <option value="Bishkek">Бишкек</option>
-            <option value="Osh">Ош</option>
-            <option value="Jalal-Abad">Джалал-Абад</option>
-            <option value="Karakol">Каракол</option>
-            <option value="Naryn">Нарын</option>
-            <option value="Talas">Талас</option>
-            <option value="Batken">Баткен</option>
+            {districts.map((district) => (
+              <option key={district.id} value={district.id}>
+                {district.name} ({district.mru?.name || 'МРУ не указано'})
+              </option>
+            ))}
           </select>
         </div>
 
@@ -287,7 +335,10 @@ const AddClientForm = ({ onClose, onSuccess, officers }) => {
           disabled={loading}
           className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400"
         >
-          {loading ? 'Создание...' : 'Создать клиента'}
+          {loading
+            ? (isEdit ? 'Сохранение...' : 'Создание...')
+            : (isEdit ? 'Сохранить изменения' : 'Создать клиента')
+          }
         </button>
       </div>
     </form>

@@ -218,10 +218,15 @@ const Clients = () => {
                       </div>
 
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600 dark:text-gray-400">Район:</span>
-                        <span className="text-sm text-gray-800 dark:text-gray-100 flex items-center space-x-1">
-                          <MapPin size={14} className="text-gray-400 dark:text-gray-500" />
-                          <span>{client.district}</span>
+                        <span className="text-sm text-gray-600">Район:</span>
+                        <span className="text-sm text-gray-800 flex items-center space-x-1">
+                          <MapPin size={14} className="text-gray-400" />
+                          <span>
+                            {client.assignedDistrict?.name
+                              ? `${client.assignedDistrict.name}${client.assignedDistrict.mru?.name ? ` (${client.assignedDistrict.mru.name})` : ''}`
+                              : (client.district || 'Не указан')
+                            }
+                          </span>
                         </span>
                       </div>
 

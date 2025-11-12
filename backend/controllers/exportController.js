@@ -1,6 +1,8 @@
 const ExcelJS = require('exceljs');
-const { Client, User, WorkSession, MRU, District } = require('../models');
+const PDFDocument = require('pdfkit');
+const { Client, User, WorkSession, MRU, District, GeofenceViolation } = require('../models');
 const { Op } = require('sequelize');
+const { logAction } = require('../middleware/auditLogger');
 
 // @desc    Экспорт общей статистики в Excel
 // @route   GET /api/export/statistics/excel
@@ -157,6 +159,19 @@ exports.exportStatisticsToExcel = async (req, res, next) => {
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
+    // Логируем экспорт
+    await logAction({
+      userId: user.id || user.dataValues?.id,
+      userName: user.fullName || user.dataValues?.fullName,
+      userRole: user.role || user.dataValues?.role,
+      action: 'export',
+      entityType: 'report',
+      description: 'Экспорт общей статистики в Excel',
+      ipAddress: req.ip || req.connection.remoteAddress,
+      userAgent: req.get('User-Agent'),
+      status: 'success'
+    });
+
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {
@@ -266,10 +281,128 @@ exports.exportClientsToExcel = async (req, res, next) => {
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
+    // Логируем экспорт
+    await logAction({
+      userId: user.id || user.dataValues?.id,
+      userName: user.fullName || user.dataValues?.fullName,
+      userRole: user.role || user.dataValues?.role,
+      action: 'export',
+      entityType: 'client',
+      description: `Экспорт списка клиентов в Excel (${clients.length} клиентов)`,
+      ipAddress: req.ip || req.connection.remoteAddress,
+      userAgent: req.get('User-Agent'),
+      status: 'success'
+    });
+
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {
     next(error);
+  }
+};
+
+// @desc    Экспорт общей статистики в PDF
+// @route   GET /api/export/statistics/pdf
+// @access  Private
+exports.exportStatisticsToPDF = async (req, res, next) => {
+  try {
+    const user = req.user;
+
+    const doc = new PDFDocument({ margin: 50 });
+
+    // Отправляем заголовки
+    res.setHeader('Content-Type', 'application/pdf');
+    const filename = `statistika-${new Date().toISOString().split('T')[0]}.pdf`;
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    doc.pipe(res);
+
+    // Заголовок
+    doc.fontSize(20).text('ОТЧЕТ ПО ПРОБАЦИОННОЙ СИСТЕМЕ', { align: 'center' });
+    doc.moveDown();
+    doc.fontSize(12).text(`Дата: ${new Date().toLocaleDateString('ru-RU')}`, { align: 'center' });
+    doc.moveDown(2);
+
+    // Получаем статистику
+    const totalClients = await Client.count({});
+    const activeClients = await Client.count({ where: { status: 'active' } });
+    const completedClients = await Client.count({ where: { status: 'completed' } });
+    const totalOfficers = await User.count({ where: { role: 'officer', isActive: true } });
+    const totalSessions = await WorkSession.count({});
+    const approvedSessions = await WorkSession.count({ where: { verificationStatus: 'approved' } });
+    const totalViolations = await GeofenceViolation.count({});
+
+    // Основные показатели
+    doc.fontSize(14).text('ОСНОВНЫЕ ПОКАЗАТЕЛИ', { underline: true });
+    doc.moveDown();
+
+    doc.fontSize(12);
+    doc.text(`Всего клиентов: ${totalClients}`);
+    doc.text(`  • Активные: ${activeClients}`);
+    doc.text(`  • Завершили программу: ${completedClients}`);
+    doc.moveDown();
+
+    doc.text(`Всего офицеров: ${totalOfficers}`);
+    doc.text(`Средняя нагрузка: ${totalOfficers > 0 ? Math.round(activeClients / totalOfficers) : 0} клиентов/офицер`);
+    doc.moveDown();
+
+    doc.text(`Всего рабочих сессий: ${totalSessions}`);
+    doc.text(`  • Одобрено: ${approvedSessions}`);
+    doc.moveDown();
+
+    doc.text(`Всего нарушений геозоны: ${totalViolations}`);
+    doc.moveDown(2);
+
+    // Статистика по МРУ
+    doc.fontSize(14).text('СТАТИСТИКА ПО МРУ', { underline: true });
+    doc.moveDown();
+
+    const mrus = await MRU.findAll({});
+
+    for (const mru of mrus) {
+      const clientsCount = await Client.count({
+        include: [{
+          model: User,
+          as: 'officer',
+          where: { mruId: mru.id },
+          attributes: []
+        }]
+      });
+      const activeCount = await Client.count({
+        where: { status: 'active' },
+        include: [{
+          model: User,
+          as: 'officer',
+          where: { mruId: mru.id },
+          attributes: []
+        }]
+      });
+
+      doc.fontSize(12).text(`${mru.name}:`);
+      doc.fontSize(11).text(`  Всего клиентов: ${clientsCount}`);
+      doc.text(`  Активных: ${activeCount}`);
+      doc.moveDown(0.5);
+    }
+
+    // Логируем экспорт
+    await logAction({
+      userId: user.id || user.dataValues?.id,
+      userName: user.fullName || user.dataValues?.fullName,
+      userRole: user.role || user.dataValues?.role,
+      action: 'export',
+      entityType: 'report',
+      description: 'Экспорт общей статистики в PDF',
+      ipAddress: req.ip || req.connection.remoteAddress,
+      userAgent: req.get('User-Agent'),
+      status: 'success'
+    });
+
+    // Завершаем документ
+    doc.end();
+  } catch (error) {
+    if (!res.headersSent) {
+      next(error);
+    }
   }
 };
 

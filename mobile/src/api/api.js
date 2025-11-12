@@ -8,26 +8,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import { Platform } from 'react-native';
 
-// API URL Configuration
-const getApiUrl = () => {
-  // Priority 1: Environment variable
-  if (process.env.EXPO_PUBLIC_API_URL) {
-    return process.env.EXPO_PUBLIC_API_URL;
-  }
-
-  // Priority 2: Auto-detect based on device
-  const LOCAL_IP = '10.99.7.91'; // Your computer's IP address
-
-  // Android emulator uses special address
-  if (Platform.OS === 'android' && __DEV__) {
-    return 'http://10.0.2.2:5000/api';
-  }
-
-  // Real devices use local IP
-  return `http://${LOCAL_IP}:5000/api`;
-};
-
-const API_URL = getApiUrl();
+// Production API URL - внешний IP с NAT на MikroTik
+// 85.113.27.42:8090 -> 10.99.7.91:5000
+const API_URL = 'http://85.113.27.42:8090/api';
 console.log('📡 Mobile API Client URL:', API_URL);
 
 // Create axios instance

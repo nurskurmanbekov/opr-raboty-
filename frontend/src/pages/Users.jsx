@@ -3,7 +3,7 @@ import { UserPlus, Edit, Trash2, Check, X, Search, UserCircle } from 'lucide-rea
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import Layout from '../components/Layout';
-import { usersAPI } from '../api/api';
+import { usersAPI, mruAPI, districtsAPI } from '../api/api';
 import Modal from '../components/Modal';
 import { useAuth } from '../context/AuthContext';
 
@@ -17,11 +17,11 @@ const ROLES = [
   { value: 'observer', label: 'Наблюдатель', color: 'from-gray-500 to-gray-600', badge: 'bg-gray-100 text-gray-800' },
 ];
 
-const DISTRICTS = ['Bishkek', 'Osh', 'Jalal-Abad', 'Karakol', 'Batken', 'Talas', 'Naryn'];
-
 const Users = () => {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
+  const [mrus, setMrus] = useState([]);
+  const [districts, setDistricts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -32,14 +32,17 @@ const Users = () => {
     fullName: '',
     email: '',
     password: '',
-    phoneNumber: '',
+    phone: '',
     role: 'officer',
-    district: 'Bishkek',
+    mruId: '',
+    districtId: '',
     employeeId: ''
   });
 
   useEffect(() => {
     fetchUsers();
+    fetchMRUs();
+    fetchDistricts();
   }, []);
 
   const fetchUsers = async () => {
@@ -55,6 +58,24 @@ const Users = () => {
     }
   };
 
+  const fetchMRUs = async () => {
+    try {
+      const response = await mruAPI.getAllMRU();
+      setMrus(response.data || []);
+    } catch (error) {
+      console.error('Error fetching MRUs:', error);
+    }
+  };
+
+  const fetchDistricts = async () => {
+    try {
+      const response = await districtsAPI.getAllDistricts();
+      setDistricts(response.data || []);
+    } catch (error) {
+      console.error('Error fetching districts:', error);
+    }
+  };
+
   const handleCreateUser = async (e) => {
     e.preventDefault();
     const loadingToast = toast.loading('Создание пользователя...');
@@ -65,9 +86,10 @@ const Users = () => {
         fullName: '',
         email: '',
         password: '',
-        phoneNumber: '',
+        phone: '',
         role: 'officer',
-        district: 'Bishkek',
+        mruId: '',
+        districtId: '',
         employeeId: ''
       });
       fetchUsers();
@@ -136,6 +158,31 @@ const Users = () => {
 
   const getRoleInfo = (role) => {
     return ROLES.find(r => r.value === role) || ROLES[ROLES.length - 1];
+  };
+
+  const getUserLocation = (user) => {
+    // Сначала проверяем districtId (район)
+    if (user.districtId) {
+      const district = districts.find(d => d.id === user.districtId);
+      if (district) {
+        return `${district.name} (район)`;
+      }
+    }
+
+    // Затем проверяем mruId (МРУ)
+    if (user.mruId) {
+      const mru = mrus.find(m => m.id === user.mruId);
+      if (mru) {
+        return `${mru.name} (МРУ)`;
+      }
+    }
+
+    // Fallback на старое поле district
+    if (user.district) {
+      return user.district;
+    }
+
+    return 'Не назначен';
   };
 
   return (
@@ -255,8 +302,8 @@ const Users = () => {
                       </div>
 
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Район:</span>
-                        <span className="text-sm text-gray-800">{user.district || 'Не назначен'}</span>
+                        <span className="text-sm text-gray-600">Расположение:</span>
+                        <span className="text-sm text-gray-800 font-medium">{getUserLocation(user)}</span>
                       </div>
 
                       {user.employeeId && (
@@ -378,9 +425,11 @@ const Users = () => {
             </label>
             <input
               type="tel"
-              value={formData.phoneNumber}
-              onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="+996700000000"
+              required
             />
           </div>
 
@@ -403,19 +452,44 @@ const Users = () => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Район
+              МРУ (Межрайонное управление)
             </label>
             <select
-              value={formData.district}
-              onChange={(e) => setFormData({ ...formData, district: e.target.value })}
+              value={formData.mruId}
+              onChange={(e) => setFormData({ ...formData, mruId: e.target.value, districtId: '' })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              {DISTRICTS.map((district) => (
-                <option key={district} value={district}>
-                  {district}
+              <option value="">Не назначен</option>
+              {mrus.map((mru) => (
+                <option key={mru.id} value={mru.id}>
+                  {mru.name}
                 </option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Район
+            </label>
+            <select
+              value={formData.districtId}
+              onChange={(e) => setFormData({ ...formData, districtId: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={!formData.mruId}
+            >
+              <option value="">Не назначен</option>
+              {districts
+                .filter(d => !formData.mruId || d.mruId === formData.mruId)
+                .map((district) => (
+                  <option key={district.id} value={district.id}>
+                    {district.name}
+                  </option>
+                ))}
+            </select>
+            {!formData.mruId && (
+              <p className="text-xs text-gray-500 mt-1">Сначала выберите МРУ</p>
+            )}
           </div>
 
           <div>

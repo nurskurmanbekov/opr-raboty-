@@ -28,9 +28,31 @@ const Geofence = sequelize.define('Geofence', {
     type: DataTypes.STRING,
     allowNull: true
   },
+  // Старое поле district (для обратной совместимости)
   district: {
     type: DataTypes.STRING,
-    allowNull: false
+    allowNull: true,
+    comment: 'Устаревшее поле, используйте districtId'
+  },
+  // Новое поле districtId (UUID ссылка на Districts)
+  districtId: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'Districts',
+      key: 'id'
+    },
+    comment: 'ID района из справочника'
+  },
+  // Новое поле mruId (UUID ссылка на MRUs)
+  mruId: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'MRUs',
+      key: 'id'
+    },
+    comment: 'ID МРУ из справочника (опционально)'
   },
   isActive: {
     type: DataTypes.BOOLEAN,

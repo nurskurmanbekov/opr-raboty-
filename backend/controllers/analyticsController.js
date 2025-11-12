@@ -10,12 +10,14 @@ const Client = require('../models/Client');
  */
 exports.getOverallStats = async (req, res) => {
   try {
-    const { startDate, endDate, district, officerId } = req.query;
+    const { startDate, endDate, district, districtId, mruId, officerId } = req.query;
 
     const result = await analyticsService.getOverallStats({
       startDate,
       endDate,
-      district,
+      district, // Поддержка старого параметра для обратной совместимости
+      districtId,
+      mruId,
       officerId
     });
 
