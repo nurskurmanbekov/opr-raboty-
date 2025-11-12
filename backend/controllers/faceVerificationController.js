@@ -162,6 +162,50 @@ exports.verifyFace = async (req, res) => {
 };
 
 /**
+ * Get face registration status
+ */
+exports.getFaceStatus = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const user = await User.findByPk(userId, {
+      attributes: ['id', 'firstName', 'lastName', 'email', 'faceEncodingId']
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    let faceRegistration = null;
+    if (user.faceEncodingId) {
+      faceRegistration = await FaceVerification.findByPk(user.faceEncodingId, {
+        attributes: ['id', 'verificationType', 'verificationStatus', 'createdAt']
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        isRegistered: !!user.faceEncodingId,
+        faceEncodingId: user.faceEncodingId,
+        registration: faceRegistration
+      }
+    });
+
+  } catch (error) {
+    console.error('Get face status error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching face status',
+      error: error.message
+    });
+  }
+};
+
+/**
  * Get verification history
  */
 exports.getVerificationHistory = async (req, res) => {
