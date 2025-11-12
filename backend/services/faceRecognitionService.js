@@ -41,8 +41,7 @@ class FaceRecognitionService {
           },
           params: {
             subject: clientId, // Уникальный идентификатор клиента
-            det_prob_threshold: 0.8, // Порог уверенности детекции
-            det_prob_threshold: 0.8
+            det_prob_threshold: 0.8 // Порог уверенности детекции
           }
         }
       );
