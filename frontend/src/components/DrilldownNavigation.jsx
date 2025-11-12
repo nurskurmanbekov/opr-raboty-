@@ -13,7 +13,7 @@ import {
   Activity
 } from 'lucide-react';
 import { statisticsAPI } from '../api/api';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme } from '../context/ThemeContext';
 
 const DrilldownNavigation = () => {
   const { isDark } = useTheme();

@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import { statisticsAPI, exportAPI } from '../api/api';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme } from '../context/ThemeContext';
 
 const EnhancedDashboard = () => {
   const { isDark, toggleTheme } = useTheme();

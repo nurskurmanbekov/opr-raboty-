@@ -24,12 +24,40 @@ initializeFirebase();
 app.use(helmet()); // Security headers
 
 // CORS configuration - allow requests from mobile app and web frontend
-app.use(cors({
-  origin: '*', // Allow all origins (for development). In production, specify exact origins
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
+  : ['http://localhost:5173', 'http://localhost:3000']; // Default for development
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, Postman, curl)
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    // In production, check against whitelist
+    if (process.env.NODE_ENV === 'production') {
+      if (allowedOrigins.indexOf(origin) === -1) {
+        const msg = `🚫 CORS policy: Origin ${origin} is not allowed`;
+        console.warn(msg);
+        return callback(new Error(msg), false);
+      }
+    }
+
+    // Allow in development or if whitelisted
+    callback(null, true);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  maxAge: 600 // Cache preflight requests for 10 minutes
+};
+
+app.use(cors(corsOptions));
+console.log('🔐 CORS configured:');
+console.log('   Environment:', process.env.NODE_ENV || 'development');
+console.log('   Allowed origins:', process.env.NODE_ENV === 'production' ? allowedOrigins : 'All (development mode)');
 
 app.use(compression()); // Compress responses
 app.use(express.json()); // Parse JSON bodies
