@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { Mail, Lock, LogIn, Shield, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme } from '../context/ThemeContext';
 import ThemeToggle from '../components/ThemeToggle';
 
 const Login = () => {

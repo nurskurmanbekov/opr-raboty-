@@ -15,7 +15,58 @@ const { Op } = require('sequelize');
 // @access  Private
 exports.getDashboardStats = async (req, res, next) => {
   try {
-    const { mruId, districtId, dateFrom, dateTo } = req.query;
+    const currentUser = req.user;
+    let { mruId, districtId, dateFrom, dateTo } = req.query;
+
+    // 🔒 SECURITY: Enforce access control based on user role
+    if (currentUser.role === 'officer') {
+      // Officers can only see their own clients' statistics, no mruId/districtId filtering
+      if (mruId || districtId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Officers cannot filter by MRU or district'
+        });
+      }
+    } else if (currentUser.role === 'district_admin') {
+      // District admin can only see their district
+      if (!currentUser.districtId) {
+        return res.status(403).json({
+          success: false,
+          message: 'District not assigned'
+        });
+      }
+      // Override any district parameter with user's district
+      districtId = currentUser.districtId;
+      // District admin cannot filter by MRU
+      if (mruId && mruId !== currentUser.mruId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Cannot access other MRUs'
+        });
+      }
+    } else if (currentUser.role === 'regional_admin') {
+      // Regional admin can only see their MRU
+      if (!currentUser.mruId) {
+        return res.status(403).json({
+          success: false,
+          message: 'MRU not assigned'
+        });
+      }
+      // Override any MRU parameter with user's MRU
+      mruId = currentUser.mruId;
+      // Regional admin can only filter districts within their MRU
+      if (districtId) {
+        const District = require('../models').District;
+        const district = await District.findByPk(districtId);
+        if (!district || district.mruId !== currentUser.mruId) {
+          return res.status(403).json({
+            success: false,
+            message: 'Cannot access districts outside your MRU'
+          });
+        }
+      }
+    }
+    // Superadmin and central_admin can see all
 
     // Условия фильтрации по дате
     const dateFilter = {};
@@ -26,11 +77,16 @@ exports.getDashboardStats = async (req, res, next) => {
 
     // Фильтр по МРУ или району (для ограничения доступа)
     const userFilter = {};
-    if (mruId) {
-      userFilter.mruId = mruId;
-    }
-    if (districtId) {
-      userFilter.districtId = districtId;
+    if (currentUser.role === 'officer') {
+      // Officers see only their clients
+      userFilter.id = currentUser.id;
+    } else {
+      if (mruId) {
+        userFilter.mruId = mruId;
+      }
+      if (districtId) {
+        userFilter.districtId = districtId;
+      }
     }
 
     // ОСНОВНЫЕ ПОКАЗАТЕЛИ
@@ -241,10 +297,34 @@ exports.getDashboardStats = async (req, res, next) => {
 
 // @desc    Получить статистику по МРУ
 // @route   GET /api/statistics/mru
-// @access  Private
+// @access  Private (Regional Admin, Superadmin, Central Admin)
 exports.getMRUStats = async (req, res, next) => {
   try {
+    const currentUser = req.user;
+
+    // 🔒 SECURITY: Only regional admins and higher can view MRU statistics
+    const allowedRoles = ['regional_admin', 'superadmin', 'central_admin'];
+    if (!allowedRoles.includes(currentUser.role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only regional administrators can view MRU statistics'
+      });
+    }
+
+    // 🔒 SECURITY: Regional admin can only see their MRU
+    const mruFilter = {};
+    if (currentUser.role === 'regional_admin') {
+      if (!currentUser.mruId) {
+        return res.status(403).json({
+          success: false,
+          message: 'MRU not assigned'
+        });
+      }
+      mruFilter.id = currentUser.mruId;
+    }
+
     const mrus = await MRU.findAll({
+      where: mruFilter,
       attributes: [
         'id',
         'name',
@@ -373,14 +453,50 @@ exports.getMRUStats = async (req, res, next) => {
 
 // @desc    Получить статистику по районам (для карты)
 // @route   GET /api/statistics/districts
-// @access  Private
+// @access  Private (District Admin, Regional Admin, Superadmin, Central Admin)
 exports.getDistrictStats = async (req, res, next) => {
   try {
-    const { mruId } = req.query;
+    const currentUser = req.user;
+    let { mruId } = req.query;
+
+    // 🔒 SECURITY: Only admins can view district statistics
+    const allowedRoles = ['district_admin', 'regional_admin', 'superadmin', 'central_admin'];
+    if (!allowedRoles.includes(currentUser.role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only administrators can view district statistics'
+      });
+    }
 
     const where = {};
-    if (mruId) {
-      where.mruId = mruId;
+
+    // 🔒 SECURITY: District admin can only see their district
+    if (currentUser.role === 'district_admin') {
+      if (!currentUser.districtId) {
+        return res.status(403).json({
+          success: false,
+          message: 'District not assigned'
+        });
+      }
+      where.id = currentUser.districtId;
+      // Ignore mruId parameter for district_admin
+    }
+    // 🔒 SECURITY: Regional admin can only see districts in their MRU
+    else if (currentUser.role === 'regional_admin') {
+      if (!currentUser.mruId) {
+        return res.status(403).json({
+          success: false,
+          message: 'MRU not assigned'
+        });
+      }
+      // Override mruId with user's MRU
+      where.mruId = currentUser.mruId;
+    }
+    // Superadmin and central_admin can filter by mruId
+    else {
+      if (mruId) {
+        where.mruId = mruId;
+      }
     }
 
     const districts = await District.findAll({

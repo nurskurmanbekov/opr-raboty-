@@ -4,7 +4,7 @@ import {
   MapPin, Bell, UserCog, Building2, Map, CheckSquare, TrendingUp, Zap, History, PieChart
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme } from '../context/ThemeContext';
 
 const Sidebar = () => {
   const location = useLocation();

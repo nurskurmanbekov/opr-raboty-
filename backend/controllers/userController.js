@@ -5,7 +5,7 @@ const { User } = require('../models');
 // @access  Private (Admin, District Admin, Officer)
 exports.getUsers = async (req, res, next) => {
   try {
-    const { role, district } = req.query;
+    const { role, districtId, mruId } = req.query;
 
     let whereClause = {};
 
@@ -14,11 +14,26 @@ exports.getUsers = async (req, res, next) => {
       whereClause.role = role;
     }
 
-    // District admin and officer can only see users from their district
+    // 🔒 SECURITY: District admin and officer can only see users from their district
     if (req.user.role === 'district_admin' || req.user.role === 'officer') {
-      whereClause.district = req.user.district;
-    } else if (district) {
-      whereClause.district = district;
+      if (req.user.districtId) {
+        whereClause.districtId = req.user.districtId;
+      }
+    }
+    // 🔒 SECURITY: Regional admin can only see users from their MRU
+    else if (req.user.role === 'regional_admin') {
+      if (req.user.mruId) {
+        whereClause.mruId = req.user.mruId;
+      }
+    }
+    // Superadmin/central_admin can filter by districtId or mruId
+    else {
+      if (districtId) {
+        whereClause.districtId = districtId;
+      }
+      if (mruId) {
+        whereClause.mruId = mruId;
+      }
     }
 
     const users = await User.findAll({
@@ -312,10 +327,10 @@ exports.deleteUser = async (req, res, next) => {
 
 // @desc    Create user
 // @route   POST /api/users
-// @access  Private (Superadmin, District Admin)
+// @access  Private (Superadmin, District Admin, Regional Admin)
 exports.createUser = async (req, res, next) => {
   try {
-    const { fullName, email, phone, password, role, district, managedDistricts } = req.body;
+    const { fullName, email, phone, password, role, districtId, mruId, managedDistricts } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ where: { email } });
@@ -326,11 +341,43 @@ exports.createUser = async (req, res, next) => {
       });
     }
 
-    // District admin can only create officers
-    if (req.user.role === 'district_admin' && role !== 'officer') {
+    // 🔒 SECURITY: District admin can only create officers in their district
+    if (req.user.role === 'district_admin') {
+      if (role && role !== 'officer') {
+        return res.status(403).json({
+          success: false,
+          message: 'District admins can only create officers'
+        });
+      }
+      if (districtId && districtId !== req.user.districtId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Cannot create users in other districts'
+        });
+      }
+    }
+
+    // 🔒 SECURITY: Regional admin can only create users in their MRU
+    if (req.user.role === 'regional_admin') {
+      if (role && (role === 'superadmin' || role === 'central_admin')) {
+        return res.status(403).json({
+          success: false,
+          message: 'Cannot create admin users'
+        });
+      }
+      if (mruId && mruId !== req.user.mruId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Cannot create users in other MRUs'
+        });
+      }
+    }
+
+    // 🔒 SECURITY: Cannot create superadmin users
+    if (role === 'superadmin') {
       return res.status(403).json({
         success: false,
-        message: 'District admins can only create officers'
+        message: 'Cannot create superadmin users. Contact database administrator.'
       });
     }
 
@@ -341,7 +388,8 @@ exports.createUser = async (req, res, next) => {
       phone,
       password,
       role: role || 'officer',
-      district: district || req.user.district,
+      districtId: districtId || req.user.districtId,
+      mruId: mruId || req.user.mruId,
       managedDistricts: managedDistricts || []
     });
 
@@ -353,7 +401,8 @@ exports.createUser = async (req, res, next) => {
         fullName: user.fullName,
         email: user.email,
         role: user.role,
-        district: user.district
+        districtId: user.districtId,
+        mruId: user.mruId
       }
     });
   } catch (error) {
@@ -366,7 +415,18 @@ exports.createUser = async (req, res, next) => {
 // @access  Private (Superadmin only)
 exports.updateUserRole = async (req, res, next) => {
   try {
-    const user = await User.findByPk(req.params.id);
+    const targetUserId = req.params.id;
+    const currentUser = req.user;
+
+    // 🔒 SECURITY: Cannot modify your own role (privilege escalation prevention)
+    if (targetUserId === currentUser.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'You cannot modify your own role'
+      });
+    }
+
+    const user = await User.findByPk(targetUserId);
 
     if (!user) {
       return res.status(404).json({
@@ -376,6 +436,22 @@ exports.updateUserRole = async (req, res, next) => {
     }
 
     const { role, managedDistricts } = req.body;
+
+    // 🔒 SECURITY: Cannot elevate anyone to superadmin (only database admin can do this)
+    if (role === 'superadmin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Cannot elevate users to superadmin role. Contact database administrator.'
+      });
+    }
+
+    // 🔒 SECURITY: Only superadmin can modify other superadmins
+    if (user.role === 'superadmin' && currentUser.role !== 'superadmin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only superadmin can modify other superadmins'
+      });
+    }
 
     await user.update({
       role,
@@ -397,7 +473,18 @@ exports.updateUserRole = async (req, res, next) => {
 // @access  Private (Superadmin, Regional Admin)
 exports.assignDistrict = async (req, res, next) => {
   try {
-    const user = await User.findByPk(req.params.id);
+    const targetUserId = req.params.id;
+    const currentUser = req.user;
+
+    // 🔒 SECURITY: Cannot modify yourself
+    if (targetUserId === currentUser.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Cannot modify your own district assignment'
+      });
+    }
+
+    const user = await User.findByPk(targetUserId);
 
     if (!user) {
       return res.status(404).json({
@@ -406,9 +493,22 @@ exports.assignDistrict = async (req, res, next) => {
       });
     }
 
-    const { district } = req.body;
+    const { districtId, mruId } = req.body;
 
-    await user.update({ district });
+    // 🔒 SECURITY: Regional admin can only assign districts within their MRU
+    if (currentUser.role === 'regional_admin') {
+      if (mruId && mruId !== currentUser.mruId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Cannot assign districts from other MRUs'
+        });
+      }
+    }
+
+    await user.update({
+      districtId: districtId || user.districtId,
+      mruId: mruId || user.mruId
+    });
 
     res.json({
       success: true,

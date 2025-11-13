@@ -5,7 +5,7 @@ const { Client, User, WorkSession, Photo, District, MRU } = require('../models')
 // @access  Private
 exports.getClients = async (req, res, next) => {
   try {
-    const { status, district, districtId, mruId } = req.query;
+    const { status, districtId, mruId } = req.query;
 
     let whereClause = {};
 
@@ -14,28 +14,48 @@ exports.getClients = async (req, res, next) => {
       whereClause.status = status;
     }
 
-    // District admin and officers can only see clients from their district
-    if (req.user.role === 'district_admin' || req.user.role === 'officer') {
-      // Новая система - используем districtId
-      if (req.user.districtId) {
-        whereClause.districtId = req.user.districtId;
-      } else if (req.user.district) {
-        // Fallback для старой системы
-        whereClause.district = req.user.district;
-      }
-    } else {
-      // Фильтрация по параметрам запроса
-      if (districtId) {
-        whereClause.districtId = districtId;
-      } else if (district) {
-        // Поддержка старого параметра district (STRING)
-        whereClause.district = district;
-      }
-    }
-
-    // Officers can only see their assigned clients
+    // 🔒 SECURITY: Officers can only see their assigned clients
     if (req.user.role === 'officer') {
       whereClause.officerId = req.user.id;
+      if (req.user.districtId) {
+        whereClause.districtId = req.user.districtId;
+      }
+    }
+    // 🔒 SECURITY: District admin can only see clients from their district
+    else if (req.user.role === 'district_admin') {
+      if (!req.user.districtId) {
+        return res.status(403).json({
+          success: false,
+          message: 'District not assigned'
+        });
+      }
+      whereClause.districtId = req.user.districtId;
+    }
+    // 🔒 SECURITY: Regional admin can only see clients from their MRU
+    else if (req.user.role === 'regional_admin') {
+      if (!req.user.mruId) {
+        return res.status(403).json({
+          success: false,
+          message: 'MRU not assigned'
+        });
+      }
+      whereClause['$assignedDistrict.mruId$'] = req.user.mruId;
+    }
+    // Superadmin/central_admin can filter by districtId or mruId
+    else if (req.user.role === 'superadmin' || req.user.role === 'central_admin') {
+      if (districtId) {
+        whereClause.districtId = districtId;
+      }
+      if (mruId) {
+        whereClause['$assignedDistrict.mruId$'] = mruId;
+      }
+    }
+    // All other roles - deny access
+    else {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
     }
 
     const clients = await Client.findAll({
@@ -207,7 +227,7 @@ exports.getClient = async (req, res, next) => {
 
 // @desc    Create new client
 // @route   POST /api/clients
-// @access  Private (Admin, District Admin)
+// @access  Private (Superadmin, Central Admin, District Admin, Regional Admin)
 exports.createClient = async (req, res, next) => {
   try {
     const {
@@ -216,7 +236,6 @@ exports.createClient = async (req, res, next) => {
       phone,
       email,
       password,
-      district,
       districtId,
       assignedHours,
       startDate,
@@ -224,6 +243,54 @@ exports.createClient = async (req, res, next) => {
       workLocation,
       notes
     } = req.body;
+
+    const currentUser = req.user;
+
+    // 🔒 SECURITY: Only admins can create clients
+    const allowedRoles = ['superadmin', 'central_admin', 'district_admin', 'regional_admin'];
+    if (!allowedRoles.includes(currentUser.role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only administrators can create clients'
+      });
+    }
+
+    // 🔒 SECURITY: District admin can only create clients in their district
+    if (currentUser.role === 'district_admin') {
+      if (!currentUser.districtId) {
+        return res.status(403).json({
+          success: false,
+          message: 'District not assigned'
+        });
+      }
+      if (districtId && districtId !== currentUser.districtId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Cannot create clients in other districts'
+        });
+      }
+    }
+
+    // 🔒 SECURITY: Regional admin can only create clients in their MRU
+    if (currentUser.role === 'regional_admin') {
+      if (!currentUser.mruId) {
+        return res.status(403).json({
+          success: false,
+          message: 'MRU not assigned'
+        });
+      }
+      // Verify district belongs to regional admin's MRU
+      if (districtId) {
+        const District = require('../models').District;
+        const district = await District.findByPk(districtId);
+        if (!district || district.mruId !== currentUser.mruId) {
+          return res.status(403).json({
+            success: false,
+            message: 'Cannot create clients in districts outside your MRU'
+          });
+        }
+      }
+    }
 
     // Check if client already exists
     const existingClient = await Client.findOne({ where: { idNumber } });
@@ -234,6 +301,37 @@ exports.createClient = async (req, res, next) => {
       });
     }
 
+    // 🔒 SECURITY: Verify officer belongs to the same district/MRU
+    if (officerId) {
+      const officer = await User.findByPk(officerId);
+      if (!officer) {
+        return res.status(400).json({
+          success: false,
+          message: 'Officer not found'
+        });
+      }
+
+      // District admin can only assign officers from their district
+      if (currentUser.role === 'district_admin') {
+        if (officer.districtId !== currentUser.districtId) {
+          return res.status(403).json({
+            success: false,
+            message: 'Cannot assign officers from other districts'
+          });
+        }
+      }
+
+      // Regional admin can only assign officers from their MRU
+      if (currentUser.role === 'regional_admin') {
+        if (officer.mruId !== currentUser.mruId) {
+          return res.status(403).json({
+            success: false,
+            message: 'Cannot assign officers from other MRUs'
+          });
+        }
+      }
+    }
+
     // Create client (пароль будет автоматически захеширован через beforeCreate хук в модели)
     // ВАЖНО: НЕ хешируем пароль вручную, т.к. модель уже имеет beforeCreate хук
     const client = await Client.create({
@@ -242,8 +340,7 @@ exports.createClient = async (req, res, next) => {
       phone,
       email,
       password, // Передаем пароль в чистом виде - хук модели сделает хеширование
-      district: district || null,
-      districtId: districtId || null,
+      districtId: districtId || currentUser.districtId || null,
       assignedHours,
       startDate,
       officerId,
@@ -462,10 +559,26 @@ exports.updateClient = async (req, res, next) => {
 
 // @desc    Delete client
 // @route   DELETE /api/clients/:id
-// @access  Private (Admin only)
+// @access  Private (Superadmin, Central Admin only)
 exports.deleteClient = async (req, res, next) => {
   try {
-    const client = await Client.findByPk(req.params.id);
+    const currentUser = req.user;
+
+    // 🔒 SECURITY: Only superadmin and central_admin can delete clients
+    if (currentUser.role !== 'superadmin' && currentUser.role !== 'central_admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only superadmin and central admin can delete clients'
+      });
+    }
+
+    const client = await Client.findByPk(req.params.id, {
+      include: [{
+        model: User,
+        as: 'officer',
+        attributes: ['id', 'districtId', 'mruId']
+      }]
+    });
 
     if (!client) {
       return res.status(404).json({

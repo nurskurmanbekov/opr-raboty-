@@ -1,6 +1,6 @@
 import Sidebar from './Sidebar';
 import ThemeToggle from './ThemeToggle';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme } from '../context/ThemeContext';
 
 const Layout = ({ children }) => {
   const { theme } = useTheme();

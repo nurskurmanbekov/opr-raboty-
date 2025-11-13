@@ -560,10 +560,37 @@ exports.updateLocation = async (req, res, next) => {
 // @access  Private (Officer, Admin)
 exports.verifyWorkSession = async (req, res, next) => {
   try {
+    const currentUser = req.user;
     const { status, verificationNotes } = req.body; // status: 'verified' or 'rejected'
 
+    // 🔒 SECURITY: Only officers and admins can verify sessions
+    const allowedRoles = ['officer', 'district_admin', 'regional_admin', 'superadmin', 'central_admin'];
+    if (!allowedRoles.includes(currentUser.role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only officers and administrators can verify work sessions'
+      });
+    }
+
+    // 🔒 SECURITY: Clients cannot verify their own sessions
+    if (currentUser.role === 'client') {
+      return res.status(403).json({
+        success: false,
+        message: 'Clients cannot verify their own sessions'
+      });
+    }
+
     const session = await WorkSession.findByPk(req.params.id, {
-      include: [{ model: Client, as: 'client' }]
+      include: [{
+        model: Client,
+        as: 'client',
+        attributes: ['id', 'fullName', 'completedHours', 'districtId', 'officerId'],
+        include: [{
+          model: User,
+          as: 'officer',
+          attributes: ['id', 'districtId', 'mruId']
+        }]
+      }]
     });
 
     if (!session) {
@@ -580,9 +607,61 @@ exports.verifyWorkSession = async (req, res, next) => {
       });
     }
 
+    // 🔒 SECURITY: Officers can only verify sessions of their assigned clients
+    if (currentUser.role === 'officer') {
+      if (session.client?.officerId !== currentUser.id) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: not your assigned client'
+        });
+      }
+    }
+
+    // 🔒 SECURITY: District admin can only verify sessions from their district
+    if (currentUser.role === 'district_admin') {
+      if (!currentUser.districtId) {
+        return res.status(403).json({
+          success: false,
+          message: 'District not assigned'
+        });
+      }
+      const clientDistrictId = session.client?.districtId || session.client?.officer?.districtId;
+      if (clientDistrictId !== currentUser.districtId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: different district'
+        });
+      }
+    }
+
+    // 🔒 SECURITY: Regional admin can only verify sessions from their MRU
+    if (currentUser.role === 'regional_admin') {
+      if (!currentUser.mruId) {
+        return res.status(403).json({
+          success: false,
+          message: 'MRU not assigned'
+        });
+      }
+      const clientMruId = session.client?.officer?.mruId;
+      if (clientMruId !== currentUser.mruId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: different MRU'
+        });
+      }
+    }
+
+    // Validate status
+    if (!['verified', 'rejected'].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Status must be either "verified" or "rejected"'
+      });
+    }
+
     await session.update({
       status,
-      verifiedBy: req.user.id,
+      verifiedBy: currentUser.id,
       verificationNotes,
       verifiedAt: new Date()
     });

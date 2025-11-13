@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import { auditLogsAPI } from '../api/api';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme } from '../context/ThemeContext';
 
 const AuditLog = () => {
   const { isDark } = useTheme();

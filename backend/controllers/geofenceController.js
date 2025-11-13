@@ -3,10 +3,57 @@ const { isInGeofence, haversineDistance } = require('../utils/geofence');
 
 // @desc    Create geofence
 // @route   POST /api/geofences
-// @access  Private (Admin, District Admin)
+// @access  Private (Superadmin, Central Admin, District Admin, Regional Admin)
 exports.createGeofence = async (req, res, next) => {
   try {
-    const { name, latitude, longitude, radius, workLocation, district, districtId, mruId } = req.body;
+    const currentUser = req.user;
+    const { name, latitude, longitude, radius, workLocation, districtId, mruId } = req.body;
+
+    // 🔒 SECURITY: Only admins can create geofences
+    const allowedRoles = ['superadmin', 'central_admin', 'district_admin', 'regional_admin'];
+    if (!allowedRoles.includes(currentUser.role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only administrators can create geofences'
+      });
+    }
+
+    // 🔒 SECURITY: District admin can only create geofences in their district
+    if (currentUser.role === 'district_admin') {
+      if (!currentUser.districtId) {
+        return res.status(403).json({
+          success: false,
+          message: 'District not assigned'
+        });
+      }
+      if (districtId && districtId !== currentUser.districtId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Cannot create geofences in other districts'
+        });
+      }
+    }
+
+    // 🔒 SECURITY: Regional admin can only create geofences in their MRU
+    if (currentUser.role === 'regional_admin') {
+      if (!currentUser.mruId) {
+        return res.status(403).json({
+          success: false,
+          message: 'MRU not assigned'
+        });
+      }
+      // Verify district belongs to regional admin's MRU
+      if (districtId) {
+        const District = require('../models').District;
+        const district = await District.findByPk(districtId);
+        if (!district || district.mruId !== currentUser.mruId) {
+          return res.status(403).json({
+            success: false,
+            message: 'Cannot create geofences in districts outside your MRU'
+          });
+        }
+      }
+    }
 
     const geofence = await Geofence.create({
       name,
@@ -14,11 +61,9 @@ exports.createGeofence = async (req, res, next) => {
       longitude,
       radius: radius || 200,
       workLocation,
-      // Поддержка новой системы (districtId, mruId) и старой (district STRING)
-      district: district || req.user.district || null,
-      districtId: districtId || req.user.districtId || null,
-      mruId: mruId || req.user.mruId || null,
-      createdBy: req.user.id
+      districtId: districtId || currentUser.districtId || null,
+      mruId: mruId || currentUser.mruId || null,
+      createdBy: currentUser.id
     });
 
     res.status(201).json({
@@ -36,30 +81,60 @@ exports.createGeofence = async (req, res, next) => {
 // @access  Private
 exports.getAllGeofences = async (req, res, next) => {
   try {
-    const { district, districtId, mruId, isActive } = req.query;
+    const currentUser = req.user;
+    const { districtId, mruId, isActive } = req.query;
 
     let whereClause = {};
 
-    // District admins can only see their district's geofences
-    if (req.user.role === 'district_admin') {
-      // Новая система - districtId
-      if (req.user.districtId) {
-        whereClause.districtId = req.user.districtId;
-      } else if (req.user.district) {
-        // Fallback для старой системы
-        whereClause.district = req.user.district;
+    // 🔒 SECURITY: Officers can only see geofences from their district
+    if (currentUser.role === 'officer') {
+      if (!currentUser.districtId) {
+        return res.status(403).json({
+          success: false,
+          message: 'District not assigned'
+        });
       }
-    } else {
-      // Фильтрация по параметрам запроса
+      whereClause.districtId = currentUser.districtId;
+    }
+    // 🔒 SECURITY: District admin can only see their district's geofences
+    else if (currentUser.role === 'district_admin') {
+      if (!currentUser.districtId) {
+        return res.status(403).json({
+          success: false,
+          message: 'District not assigned'
+        });
+      }
+      whereClause.districtId = currentUser.districtId;
+    }
+    // 🔒 SECURITY: Regional admin can only see geofences from their MRU
+    else if (currentUser.role === 'regional_admin') {
+      if (!currentUser.mruId) {
+        return res.status(403).json({
+          success: false,
+          message: 'MRU not assigned'
+        });
+      }
+      whereClause.mruId = currentUser.mruId;
+    }
+    // Superadmin/central_admin can filter by districtId or mruId
+    else if (currentUser.role === 'superadmin' || currentUser.role === 'central_admin') {
       if (districtId) {
         whereClause.districtId = districtId;
-      } else if (district) {
-        // Поддержка старого параметра district (STRING)
-        whereClause.district = district;
       }
       if (mruId) {
         whereClause.mruId = mruId;
       }
+    }
+    // 🔒 SECURITY: Clients can see active geofences (for work session tracking)
+    else if (currentUser.role === 'client') {
+      whereClause.isActive = true;
+    }
+    // All other roles - deny access
+    else {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
     }
 
     if (isActive !== undefined) {
@@ -103,7 +178,17 @@ exports.getAllGeofences = async (req, res, next) => {
 // @access  Private
 exports.getGeofenceById = async (req, res, next) => {
   try {
-    const geofence = await Geofence.findByPk(req.params.id);
+    const currentUser = req.user;
+
+    const geofence = await Geofence.findByPk(req.params.id, {
+      include: [
+        {
+          model: District,
+          as: 'assignedDistrict',
+          attributes: ['id', 'name', 'mruId']
+        }
+      ]
+    });
 
     if (!geofence) {
       return res.status(404).json({
@@ -112,10 +197,76 @@ exports.getGeofenceById = async (req, res, next) => {
       });
     }
 
-    res.json({
-      success: true,
-      data: geofence
+    // 🔒 SECURITY: Superadmin and central_admin can view all geofences
+    if (currentUser.role === 'superadmin' || currentUser.role === 'central_admin') {
+      return res.json({
+        success: true,
+        data: geofence
+      });
+    }
+
+    // 🔒 SECURITY: Officers can only view geofences from their district
+    if (currentUser.role === 'officer') {
+      if (!currentUser.districtId || geofence.districtId !== currentUser.districtId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: different district'
+        });
+      }
+      return res.json({
+        success: true,
+        data: geofence
+      });
+    }
+
+    // 🔒 SECURITY: District admin can only view geofences from their district
+    if (currentUser.role === 'district_admin') {
+      if (!currentUser.districtId || geofence.districtId !== currentUser.districtId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: different district'
+        });
+      }
+      return res.json({
+        success: true,
+        data: geofence
+      });
+    }
+
+    // 🔒 SECURITY: Regional admin can only view geofences from their MRU
+    if (currentUser.role === 'regional_admin') {
+      if (!currentUser.mruId || geofence.mruId !== currentUser.mruId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: different MRU'
+        });
+      }
+      return res.json({
+        success: true,
+        data: geofence
+      });
+    }
+
+    // 🔒 SECURITY: Clients can view active geofences
+    if (currentUser.role === 'client') {
+      if (!geofence.isActive) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: geofence not active'
+        });
+      }
+      return res.json({
+        success: true,
+        data: geofence
+      });
+    }
+
+    // All other roles - deny access
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied'
     });
+
   } catch (error) {
     next(error);
   }
@@ -123,9 +274,20 @@ exports.getGeofenceById = async (req, res, next) => {
 
 // @desc    Update geofence
 // @route   PUT /api/geofences/:id
-// @access  Private (Admin, District Admin)
+// @access  Private (Superadmin, Central Admin, District Admin, Regional Admin)
 exports.updateGeofence = async (req, res, next) => {
   try {
+    const currentUser = req.user;
+
+    // 🔒 SECURITY: Only admins can update geofences
+    const allowedRoles = ['superadmin', 'central_admin', 'district_admin', 'regional_admin'];
+    if (!allowedRoles.includes(currentUser.role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only administrators can update geofences'
+      });
+    }
+
     const geofence = await Geofence.findByPk(req.params.id);
 
     if (!geofence) {
@@ -135,15 +297,54 @@ exports.updateGeofence = async (req, res, next) => {
       });
     }
 
-    const { name, latitude, longitude, radius, workLocation, district, districtId, mruId, isActive } = req.body;
+    // 🔒 SECURITY: District admin can only update geofences in their district
+    if (currentUser.role === 'district_admin') {
+      if (!currentUser.districtId || geofence.districtId !== currentUser.districtId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: different district'
+        });
+      }
+    }
+
+    // 🔒 SECURITY: Regional admin can only update geofences in their MRU
+    if (currentUser.role === 'regional_admin') {
+      if (!currentUser.mruId || geofence.mruId !== currentUser.mruId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: different MRU'
+        });
+      }
+    }
+
+    const { name, latitude, longitude, radius, workLocation, districtId, mruId, isActive } = req.body;
+
+    // 🔒 SECURITY: Verify new district/MRU assignment is valid
+    if (districtId && districtId !== geofence.districtId) {
+      if (currentUser.role === 'district_admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'District admin cannot change geofence district'
+        });
+      }
+      if (currentUser.role === 'regional_admin') {
+        const District = require('../models').District;
+        const district = await District.findByPk(districtId);
+        if (!district || district.mruId !== currentUser.mruId) {
+          return res.status(403).json({
+            success: false,
+            message: 'Cannot assign geofence to districts outside your MRU'
+          });
+        }
+      }
+    }
 
     await geofence.update({
       name: name || geofence.name,
-      latitude: latitude || geofence.latitude,
-      longitude: longitude || geofence.longitude,
-      radius: radius || geofence.radius,
+      latitude: latitude !== undefined ? latitude : geofence.latitude,
+      longitude: longitude !== undefined ? longitude : geofence.longitude,
+      radius: radius !== undefined ? radius : geofence.radius,
       workLocation: workLocation || geofence.workLocation,
-      district: district !== undefined ? district : geofence.district,
       districtId: districtId !== undefined ? districtId : geofence.districtId,
       mruId: mruId !== undefined ? mruId : geofence.mruId,
       isActive: isActive !== undefined ? isActive : geofence.isActive
@@ -161,15 +362,40 @@ exports.updateGeofence = async (req, res, next) => {
 
 // @desc    Delete geofence
 // @route   DELETE /api/geofences/:id
-// @access  Private (Admin only)
+// @access  Private (Superadmin, Central Admin only)
 exports.deleteGeofence = async (req, res, next) => {
   try {
+    const currentUser = req.user;
+
+    // 🔒 SECURITY: Only superadmin and central_admin can delete geofences
+    if (currentUser.role !== 'superadmin' && currentUser.role !== 'central_admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only superadmin and central admin can delete geofences'
+      });
+    }
+
     const geofence = await Geofence.findByPk(req.params.id);
 
     if (!geofence) {
       return res.status(404).json({
         success: false,
         message: 'Geofence not found'
+      });
+    }
+
+    // Check if geofence is being used in active work sessions
+    const activeSessionsCount = await WorkSession.count({
+      where: {
+        geofenceId: req.params.id,
+        status: 'in_progress'
+      }
+    });
+
+    if (activeSessionsCount > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot delete geofence with ${activeSessionsCount} active work sessions. Please complete them first.`
       });
     }
 
@@ -254,6 +480,7 @@ exports.checkGeofence = async (req, res, next) => {
 // @access  Private
 exports.getViolations = async (req, res, next) => {
   try {
+    const currentUser = req.user;
     const { clientId, workSessionId } = req.query;
 
     let whereClause = {};
@@ -272,21 +499,70 @@ exports.getViolations = async (req, res, next) => {
         {
           model: Client,
           as: 'client',
-          attributes: ['id', 'fullName', 'district']
+          attributes: ['id', 'fullName', 'districtId'],
+          include: [{
+            model: require('../models').User,
+            as: 'officer',
+            attributes: ['id', 'districtId', 'mruId']
+          }]
         },
         {
           model: Geofence,
           as: 'geofence',
-          attributes: ['id', 'name', 'latitude', 'longitude', 'radius']
+          attributes: ['id', 'name', 'latitude', 'longitude', 'radius', 'districtId', 'mruId']
         }
       ],
       order: [['violationTime', 'DESC']]
     });
 
+    // 🔒 SECURITY: Filter violations based on user role
+    let filteredViolations = violations;
+
+    // Officers can only see violations from their assigned clients
+    if (currentUser.role === 'officer') {
+      filteredViolations = violations.filter(v =>
+        v.client && v.client.officer && v.client.officer.id === currentUser.id
+      );
+    }
+    // District admin can only see violations from their district
+    else if (currentUser.role === 'district_admin') {
+      if (!currentUser.districtId) {
+        return res.status(403).json({
+          success: false,
+          message: 'District not assigned'
+        });
+      }
+      filteredViolations = violations.filter(v =>
+        (v.client && v.client.districtId === currentUser.districtId) ||
+        (v.geofence && v.geofence.districtId === currentUser.districtId)
+      );
+    }
+    // Regional admin can only see violations from their MRU
+    else if (currentUser.role === 'regional_admin') {
+      if (!currentUser.mruId) {
+        return res.status(403).json({
+          success: false,
+          message: 'MRU not assigned'
+        });
+      }
+      filteredViolations = violations.filter(v =>
+        (v.client && v.client.officer && v.client.officer.mruId === currentUser.mruId) ||
+        (v.geofence && v.geofence.mruId === currentUser.mruId)
+      );
+    }
+    // Superadmin and central_admin can see all violations
+    else if (currentUser.role !== 'superadmin' && currentUser.role !== 'central_admin') {
+      // All other roles - deny access
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
+    }
+
     res.json({
       success: true,
-      count: violations.length,
-      data: violations
+      count: filteredViolations.length,
+      data: filteredViolations
     });
   } catch (error) {
     next(error);

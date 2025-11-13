@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, Users, Activity, TrendingUp, Circle } from 'lucide-react';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme } from '../context/ThemeContext';
 
 const KyrgyzstanMap = ({ districtStats = [] }) => {
   const { isDark } = useTheme();

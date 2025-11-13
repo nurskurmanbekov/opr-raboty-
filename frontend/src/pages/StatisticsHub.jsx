@@ -5,7 +5,7 @@ import Layout from '../components/Layout';
 import KyrgyzstanMap from '../components/KyrgyzstanMap';
 import DrilldownNavigation from '../components/DrilldownNavigation';
 import { statisticsAPI } from '../api/api';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme } from '../context/ThemeContext';
 
 const StatisticsHub = () => {
   const { isDark } = useTheme();
