@@ -8,7 +8,7 @@ const ClientMTUAssignment = sequelize.define('ClientMTUAssignment', {
     autoIncrement: true
   },
   clientId: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.UUID,
     allowNull: false,
     field: 'client_id',
     references: {

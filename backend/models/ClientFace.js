@@ -8,7 +8,7 @@ const ClientFace = sequelize.define('ClientFace', {
     autoIncrement: true
   },
   userId: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.UUID,
     allowNull: false,
     field: 'user_id',
     references: {
