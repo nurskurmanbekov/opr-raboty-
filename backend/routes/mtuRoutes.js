@@ -12,7 +12,7 @@ const {
 } = require('../controllers/mtuController');
 
 // Import auth middleware
-const { protect } = require('../middleware/authMiddleware');
+const { protect } = require('../middleware/auth');
 
 // All routes require authentication
 router.use(protect);
