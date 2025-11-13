@@ -116,6 +116,8 @@ app.use('/api/auditors', require('./routes/auditorRoutes'));
 app.use('/api/export', require('./routes/exportRoutes'));
 app.use('/api/audit-logs', require('./routes/auditRoutes'));
 app.use('/api/statistics', require('./routes/statisticsRoutes'));
+// MTU routes
+app.use('/api/mtu', require('./routes/mtuRoutes'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
