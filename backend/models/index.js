@@ -16,6 +16,11 @@ const District = require('./District');
 const PendingApproval = require('./PendingApproval');
 const ClientAssignmentHistory = require('./ClientAssignmentHistory');
 const AuditorPermission = require('./AuditorPermission');
+// Новые модели для MTU и Face ID
+const MTULocation = require('./MTULocation');
+const ClientMTUAssignment = require('./ClientMTUAssignment');
+const ClientFace = require('./ClientFace');
+const FaceVerificationAttempt = require('./FaceVerificationAttempt');
 
 // Relationships
 
@@ -131,6 +136,36 @@ PendingApproval.belongsTo(User, { foreignKey: 'reviewerId', as: 'reviewer' });
 User.hasOne(AuditorPermission, { foreignKey: 'auditorId', as: 'auditorPermissions' });
 AuditorPermission.belongsTo(User, { foreignKey: 'auditorId', as: 'auditor' });
 
+// === НОВЫЕ СВЯЗИ ДЛЯ MTU И FACE ID ===
+
+// MTULocation -> ClientMTUAssignment (MTU имеет много назначений клиентов)
+MTULocation.hasMany(ClientMTUAssignment, { foreignKey: 'mtuId', as: 'assignments' });
+ClientMTUAssignment.belongsTo(MTULocation, { foreignKey: 'mtuId', as: 'mtu' });
+
+// Client -> ClientMTUAssignment (Клиент может быть назначен на несколько MTU)
+Client.hasMany(ClientMTUAssignment, { foreignKey: 'clientId', as: 'mtuAssignments' });
+ClientMTUAssignment.belongsTo(Client, { foreignKey: 'clientId', as: 'client' });
+
+// User -> ClientMTUAssignment (Кто назначил клиента на MTU)
+User.hasMany(ClientMTUAssignment, { foreignKey: 'assignedBy', as: 'mtuAssignments' });
+ClientMTUAssignment.belongsTo(User, { foreignKey: 'assignedBy', as: 'assigner' });
+
+// Client -> ClientFace (Клиент имеет несколько фото лица)
+Client.hasMany(ClientFace, { foreignKey: 'userId', as: 'facePhotos' });
+ClientFace.belongsTo(Client, { foreignKey: 'userId', as: 'client' });
+
+// Client -> FaceVerificationAttempt (Попытки верификации лица клиента)
+Client.hasMany(FaceVerificationAttempt, { foreignKey: 'userId', as: 'verificationAttempts' });
+FaceVerificationAttempt.belongsTo(Client, { foreignKey: 'userId', as: 'client' });
+
+// WorkSession -> FaceVerificationAttempt (Попытки верификации для рабочей сессии)
+WorkSession.hasMany(FaceVerificationAttempt, { foreignKey: 'workSessionId', as: 'faceAttempts' });
+FaceVerificationAttempt.belongsTo(WorkSession, { foreignKey: 'workSessionId', as: 'workSession' });
+
+// WorkSession -> MTULocation (Рабочая сессия привязана к MTU)
+MTULocation.hasMany(WorkSession, { foreignKey: 'mtuId', as: 'workSessions' });
+WorkSession.belongsTo(MTULocation, { foreignKey: 'mtuId', as: 'mtuLocation' });
+
 module.exports = {
   User,
   Client,
@@ -149,5 +184,10 @@ module.exports = {
   District,
   PendingApproval,
   ClientAssignmentHistory,
-  AuditorPermission
+  AuditorPermission,
+  // MTU и Face ID модели
+  MTULocation,
+  ClientMTUAssignment,
+  ClientFace,
+  FaceVerificationAttempt
 };

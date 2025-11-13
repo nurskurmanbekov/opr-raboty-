@@ -1,0 +1,121 @@
+version: '3.8'
+
+services:
+  # CompreFace PostgreSQL Database
+  compreface_db:
+    image: postgres:15
+    container_name: compreface_postgres
+    environment:
+      POSTGRES_DB: compreface
+      POSTGRES_USER: compreface
+      POSTGRES_PASSWORD: compreface_pwd
+    volumes:
+      - compreface_db_data:/var/lib/postgresql/data
+    networks:
+      - probation_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U compreface"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # CompreFace Admin Service
+  compreface_admin:
+    image: exadel/compreface-admin:latest
+    container_name: compreface_admin
+    environment:
+      POSTGRES_URL: jdbc:postgresql://compreface_db:5432/compreface
+      POSTGRES_USER: compreface
+      POSTGRES_PASSWORD: compreface_pwd
+      ADMIN_JAVA_OPTS: -Xmx2g
+      SPRING_PROFILES_ACTIVE: dev
+    ports:
+      - "8001:8080"
+    depends_on:
+      compreface_db:
+        condition: service_healthy
+    networks:
+      - probation_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/admin/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # CompreFace API Service
+  compreface_api:
+    image: exadel/compreface-api:latest
+    container_name: compreface_api
+    environment:
+      POSTGRES_URL: jdbc:postgresql://compreface_db:5432/compreface
+      POSTGRES_USER: compreface
+      POSTGRES_PASSWORD: compreface_pwd
+      API_JAVA_OPTS: -Xmx2g
+      SPRING_PROFILES_ACTIVE: dev
+    ports:
+      - "8002:8080"
+    depends_on:
+      compreface_db:
+        condition: service_healthy
+    networks:
+      - probation_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # CompreFace Core (Face Recognition Engine)
+  compreface_core:
+    image: exadel/compreface-core:latest
+    container_name: compreface_core
+    environment:
+      ML_PORT: 3000
+    ports:
+      - "8003:3000"
+    networks:
+      - probation_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  # Main Application Database (PostgreSQL)
+  postgres:
+    image: postgres:15
+    container_name: probation_postgres
+    environment:
+      POSTGRES_DB: probation_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-your_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - probation_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  compreface_db_data:
+    name: compreface_db_data
+  postgres_data:
+    name: probation_postgres_data
+
+networks:
+  probation_network:
+    name: probation_network
+    driver: bridge
