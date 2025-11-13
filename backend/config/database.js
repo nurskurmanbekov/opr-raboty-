@@ -23,10 +23,14 @@ const connectDB = async () => {
   try {
     await sequelize.authenticate();
     console.log('✅ Database connected successfully');
-    
-    // Sync models (use { force: true } to drop tables - BE CAREFUL!)
-    await sequelize.sync({ alter: true });
-    console.log('✅ Database models synchronized');
+
+    // Only sync in development - use migrations in production
+    if (process.env.NODE_ENV !== 'production') {
+      await sequelize.sync({ alter: true });
+      console.log('✅ Database models synchronized');
+    } else {
+      console.log('ℹ️  Production mode: skipping model sync (use migrations)');
+    }
   } catch (error) {
     console.error('❌ Database connection error:', error);
     process.exit(1);
