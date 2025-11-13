@@ -27,6 +27,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    image: probation_backend:latest
     container_name: probation_backend
     environment:
       NODE_ENV: production
@@ -71,6 +72,7 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_URL: ${VITE_API_URL:-http://10.99.7.100:5000}
+    image: probation_frontend:latest
     container_name: probation_frontend
     ports:
       - "3000:80"
