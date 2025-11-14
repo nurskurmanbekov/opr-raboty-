@@ -29,61 +29,62 @@ const User = sequelize.define('User', {
     allowNull: false
   },
   role: {
-    type: DataTypes.ENUM('superadmin', 'regional_admin', 'district_admin', 'officer', 'supervisor', 'analyst', 'observer', 'central_admin', 'mru_manager', 'district_manager', 'auditor', 'client'),
+    type: DataTypes.ENUM('superadmin', 'district_head', 'district_officer', 'client'),
     allowNull: false,
-    defaultValue: 'officer'
+    defaultValue: 'district_officer',
+    comment: 'User role: superadmin (full access), district_head (can reassign clients), district_officer (creates clients for self), client'
   },
-  // Старое поле district (для обратной совместимости)
+  // District assignment
   district: {
     type: DataTypes.STRING,
-    allowNull: true
-  },
-  // Новые поля для иерархии МРУ -> Район
-  mruId: {
-    type: DataTypes.UUID,
     allowNull: true,
-    comment: 'ID МРУ (для mru_manager, district_manager, officer)'
+    comment: 'District name for officers and clients'
   },
   districtId: {
     type: DataTypes.UUID,
     allowNull: true,
-    comment: 'ID района (для district_manager, officer)'
+    comment: 'District ID reference'
   },
-  organization: {
-    type: DataTypes.STRING,
+  // Face ID fields for CompreFace integration
+  compreFaceSubjectId: {
+    type: DataTypes.STRING(255),
     allowNull: true,
-    comment: 'Организация (для auditor)'
+    field: 'compreface_subject_id',
+    comment: 'CompreFace subject ID for face recognition'
   },
-  approvalStatus: {
-    type: DataTypes.ENUM({
-      values: ['pending', 'approved', 'rejected']
-    }),
+  faceRegistered: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    allowNull: false,
+    field: 'face_registered',
+    comment: 'Whether user has registered their face'
+  },
+  faceRegisteredAt: {
+    type: DataTypes.DATE,
     allowNull: true,
-    defaultValue: 'approved'
+    field: 'face_registered_at',
+    comment: 'Timestamp when face was registered'
   },
-  permissions: {
-    type: DataTypes.JSON,
-    defaultValue: []
-  },
-  managedDistricts: {
-    type: DataTypes.JSON,
-    defaultValue: []
+  // Legacy face encoding field (keeping for backward compatibility)
+  faceEncodingId: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    comment: 'Legacy face encoding reference'
   },
   profilePhoto: {
     type: DataTypes.STRING,
-    allowNull: true
-  },
-  faceEncodingId: {
-    type: DataTypes.UUID,
-    allowNull: true
+    allowNull: true,
+    comment: 'Profile photo URL'
   },
   isActive: {
     type: DataTypes.BOOLEAN,
-    defaultValue: true
+    defaultValue: true,
+    comment: 'Whether user account is active'
   },
   lastLogin: {
     type: DataTypes.DATE,
-    allowNull: true
+    allowNull: true,
+    comment: 'Last login timestamp'
   }
 }, {
   timestamps: true,
