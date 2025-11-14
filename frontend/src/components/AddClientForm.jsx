@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { User, Mail, Phone, Hash, MapPin, Calendar, Clock, FileText } from 'lucide-react';
+import { User, Mail, Phone, Hash, MapPin, Calendar, Clock, FileText, Camera, Briefcase } from 'lucide-react';
 import api from '../api/axios';
 import { districtsAPI } from '../api/api';
+import FacePhotosUpload from './FacePhotosUpload';
 
 const AddClientForm = ({ onClose, onSuccess, officers, initialData = null, isEdit = false }) => {
   const [formData, setFormData] = useState({
@@ -18,11 +19,15 @@ const AddClientForm = ({ onClose, onSuccess, officers, initialData = null, isEdi
     notes: ''
   });
   const [districts, setDistricts] = useState([]);
+  const [mtuLocations, setMtuLocations] = useState([]);
+  const [selectedMTUs, setSelectedMTUs] = useState([]);
+  const [facePhotos, setFacePhotos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     fetchDistricts();
+    fetchMTULocations();
   }, []);
 
   // Заполняем форму при редактировании
@@ -53,6 +58,23 @@ const AddClientForm = ({ onClose, onSuccess, officers, initialData = null, isEdi
     }
   };
 
+  const fetchMTULocations = async () => {
+    try {
+      const response = await api.get('/mtu');
+      setMtuLocations(response.data?.data || []);
+    } catch (error) {
+      console.error('Error fetching MTU locations:', error);
+    }
+  };
+
+  const handleMTUToggle = (mtuId) => {
+    setSelectedMTUs(prev =>
+      prev.includes(mtuId)
+        ? prev.filter(id => id !== mtuId)
+        : [...prev, mtuId]
+    );
+  };
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -76,12 +98,56 @@ const AddClientForm = ({ onClose, onSuccess, officers, initialData = null, isEdi
         delete payload.password;
       }
 
+      let clientId;
+
       if (isEdit && initialData?.id) {
         // Режим редактирования - PUT запрос
         await api.put(`/clients/${initialData.id}`, payload);
+        clientId = initialData.id;
       } else {
         // Режим создания - POST запрос
-        await api.post('/clients', payload);
+        const response = await api.post('/clients', payload);
+        clientId = response.data?.data?.id || response.data?.id;
+      }
+
+      // Upload face photos if provided (only for new clients)
+      if (!isEdit && facePhotos.length >= 3 && clientId) {
+        try {
+          const faceFormData = new FormData();
+          faceFormData.append('clientId', clientId);
+
+          facePhotos.forEach((photo) => {
+            faceFormData.append('photos', photo.file);
+          });
+
+          await api.post('/face-id/register', faceFormData, {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            }
+          });
+        } catch (faceError) {
+          console.error('Face registration error:', faceError);
+          setError('Клиент создан, но ошибка при регистрации лица: ' + (faceError.response?.data?.message || faceError.message));
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Assign MTU locations if selected
+      if (selectedMTUs.length > 0 && clientId) {
+        try {
+          for (const mtuId of selectedMTUs) {
+            await api.post(`/mtu/${mtuId}/assign`, {
+              clientId: clientId,
+              assignedBy: null // Will be set by backend from auth token
+            });
+          }
+        } catch (mtuError) {
+          console.error('MTU assignment error:', mtuError);
+          setError('Клиент создан, но ошибка при назначении MTU: ' + (mtuError.response?.data?.message || mtuError.message));
+          setLoading(false);
+          return;
+        }
       }
 
       onSuccess();
@@ -320,6 +386,81 @@ const AddClientForm = ({ onClose, onSuccess, officers, initialData = null, isEdi
             placeholder="Дополнительная информация..."
           />
         </div>
+      </div>
+
+      {/* Face Photos Upload - Only show for new clients */}
+      {!isEdit && (
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+          <FacePhotosUpload
+            value={facePhotos}
+            onChange={setFacePhotos}
+            error={facePhotos.length > 0 && facePhotos.length < 3 ? 'Минимум 3 фотографии требуется' : ''}
+          />
+          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+            Необязательно при создании. Фотографии лица можно загрузить позже.
+          </p>
+        </div>
+      )}
+
+      {/* MTU Assignment */}
+      <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Briefcase className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Назначение на места работы (MTU)
+          </h3>
+        </div>
+
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
+          <p className="text-sm text-blue-800 dark:text-blue-300">
+            Выберите одно или несколько мест работы (MTU) для клиента. Необязательно при создании.
+          </p>
+        </div>
+
+        {mtuLocations.length === 0 ? (
+          <div className="text-center py-6 text-gray-500 dark:text-gray-400">
+            Нет доступных мест работы
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+            {mtuLocations.map((mtu) => (
+              <label
+                key={mtu.id}
+                className={`flex items-start space-x-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+                  selectedMTUs.includes(mtu.id)
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedMTUs.includes(mtu.id)}
+                  onChange={() => handleMTUToggle(mtu.id)}
+                  className="mt-1 h-4 w-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-900 dark:text-white">
+                    {mtu.name}
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {mtu.district}
+                  </p>
+                  {mtu.address && (
+                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                      {mtu.address}
+                    </p>
+                  )}
+                </div>
+              </label>
+            ))}
+          </div>
+        )}
+
+        {selectedMTUs.length > 0 && (
+          <p className="mt-3 text-sm text-green-600 dark:text-green-400">
+            Выбрано мест работы: {selectedMTUs.length}
+          </p>
+        )}
       </div>
 
       <div className="flex justify-end space-x-4 pt-4">
