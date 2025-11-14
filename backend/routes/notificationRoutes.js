@@ -12,7 +12,7 @@ const {
   testNotification
 } = require('../controllers/notificationController');
 const { protect } = require('../middleware/auth');
-const { requireRole, requirePermission } = require('../middleware/roleCheck');
+const { requireSuperadmin } = require('../middleware/roleCheck');
 
 router.use(protect); // All routes need authentication
 
@@ -27,8 +27,8 @@ router.put('/:id/read', markAsRead);
 router.put('/read-all', markAllAsRead);
 router.delete('/:id', deleteNotification);
 
-// Admin: Send notifications
-router.post('/send', requirePermission('notifications.send'), sendNotification);
+// Admin: Send notifications (only superadmin)
+router.post('/send', requireSuperadmin(), sendNotification);
 
 // Test notification (development)
 router.post('/test', testNotification);
