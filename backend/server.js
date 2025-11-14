@@ -118,6 +118,8 @@ app.use('/api/audit-logs', require('./routes/auditRoutes'));
 app.use('/api/statistics', require('./routes/statisticsRoutes'));
 // MTU routes
 app.use('/api/mtu', require('./routes/mtuRoutes'));
+// Face ID routes (new v2.0 API with liveness detection)
+app.use('/api/face-id', require('./routes/faceIdRoutes'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {

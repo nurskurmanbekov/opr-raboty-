@@ -97,6 +97,12 @@ const WorkSession = sequelize.define('WorkSession', {
     type: DataTypes.FLOAT,
     allowNull: true,
     comment: 'Confidence score from face verification (0-1)'
+  },
+  // Work description field (NEW - required when completing work)
+  workDescription: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: 'Client description of work performed (minimum 20 characters required)'
   }
 }, {
   timestamps: true

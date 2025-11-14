@@ -85,6 +85,39 @@ const Client = sequelize.define('Client', {
   notes: {
     type: DataTypes.TEXT,
     allowNull: true
+  },
+  // Face ID fields for CompreFace integration
+  comprefaceSubjectId: {
+    type: DataTypes.STRING(255),
+    allowNull: true,
+    field: 'compreface_subject_id',
+    comment: 'CompreFace subject ID for face recognition (e.g., client_123)'
+  },
+  faceRegistered: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    allowNull: false,
+    field: 'face_registered',
+    comment: 'Whether client has registered their face (3-5 photos)'
+  },
+  faceRegisteredAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    field: 'face_registered_at',
+    comment: 'Timestamp when face was registered'
+  },
+  faceAttemptsCount: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    allowNull: false,
+    field: 'face_attempts_count',
+    comment: 'Number of failed face verification attempts today'
+  },
+  faceBlockedUntil: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    field: 'face_blocked_until',
+    comment: 'Timestamp until which face verification is blocked (after 10 failed attempts)'
   }
 }, {
   timestamps: true,
