@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const faceIdController = require('../controllers/faceIdController');
-const { authenticate } = require('../middleware/auth');
+const { protect } = require('../middleware/auth');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -49,7 +49,7 @@ const upload = multer({
  */
 router.post(
   '/register',
-  authenticate,
+  protect,
   upload.array('photos', 5), // Accept up to 5 photos with field name 'photos'
   faceIdController.registerClientFaces
 );
@@ -62,7 +62,7 @@ router.post(
  */
 router.post(
   '/verify',
-  authenticate,
+  protect,
   upload.array('photos', 3), // Exactly 3 photos for liveness detection
   faceIdController.verifyClientFace
 );
@@ -74,7 +74,7 @@ router.post(
  */
 router.get(
   '/status/:clientId',
-  authenticate,
+  protect,
   faceIdController.getFaceRegistrationStatus
 );
 
@@ -86,7 +86,7 @@ router.get(
  */
 router.get(
   '/attempts/:clientId',
-  authenticate,
+  protect,
   faceIdController.getFaceVerificationAttempts
 );
 
@@ -97,7 +97,7 @@ router.get(
  */
 router.delete(
   '/register/:clientId',
-  authenticate,
+  protect,
   faceIdController.deleteClientFaceRegistration
 );
 
@@ -108,7 +108,7 @@ router.delete(
  */
 router.post(
   '/reset-attempts/:clientId',
-  authenticate,
+  protect,
   faceIdController.resetFaceVerificationAttempts
 );
 

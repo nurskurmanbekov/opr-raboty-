@@ -15,7 +15,7 @@ const {
 } = require('../controllers/clientReassignmentController');
 const { createClientValidation } = require('../utils/validators');
 const { validate } = require('../middleware/validation');
-const { authenticate } = require('../middleware/auth');
+const { protect } = require('../middleware/auth');
 const {
   requireOfficer,
   requireDistrictHead,
@@ -24,7 +24,7 @@ const {
   canManageClient
 } = require('../middleware/roleCheck');
 
-router.use(authenticate); // All routes need authentication
+router.use(protect); // All routes need authentication
 
 // 🔒 SECURITY: Get all clients - role-based filtering in controller
 router.get('/', requireOfficer(), getClients);

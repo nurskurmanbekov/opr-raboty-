@@ -10,21 +10,21 @@ const {
   exportToPDF
 } = require('../controllers/analyticsController');
 const { protect } = require('../middleware/auth');
-const { requirePermission } = require('../middleware/roleCheck');
+const { requireOfficer, requireDistrictHead } = require('../middleware/roleCheck');
 
 router.use(protect); // All routes need authentication
 
-// Statistics endpoints
-router.get('/overall', requirePermission('analytics.view'), getOverallStats);
-router.get('/client/:clientId', requirePermission('analytics.view'), getClientPerformance);
-router.get('/officer/:officerId', requirePermission('analytics.view'), getOfficerPerformance);
-router.get('/district/:district', requirePermission('analytics.view'), getDistrictStats);
+// Statistics endpoints (officers and above)
+router.get('/overall', requireOfficer(), getOverallStats);
+router.get('/client/:clientId', requireOfficer(), getClientPerformance);
+router.get('/officer/:officerId', requireOfficer(), getOfficerPerformance);
+router.get('/district/:district', requireOfficer(), getDistrictStats);
 
 // Time series data for charts
-router.get('/timeseries/:type', requirePermission('analytics.view'), getTimeSeriesData);
+router.get('/timeseries/:type', requireOfficer(), getTimeSeriesData);
 
-// Export endpoints
-router.get('/export/excel', requirePermission('reports.export'), exportToExcel);
-router.get('/export/pdf', requirePermission('reports.export'), exportToPDF);
+// Export endpoints (district_head and superadmin only)
+router.get('/export/excel', requireDistrictHead(), exportToExcel);
+router.get('/export/pdf', requireDistrictHead(), exportToPDF);
 
 module.exports = router;
