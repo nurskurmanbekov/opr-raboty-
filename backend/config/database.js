@@ -25,8 +25,10 @@ const connectDB = async () => {
     console.log('✅ Database connected successfully');
     
     // Sync models (use { force: true } to drop tables - BE CAREFUL!)
-    await sequelize.sync({ alter: true });
-    console.log('✅ Database models synchronized');
+    // Используем sync без alter в production для безопасности
+    // alter: true может вызвать проблемы с ENUM типами
+    await sequelize.sync({ alter: false });
+    console.log('✅ Database models synchronized (no alter)');
   } catch (error) {
     console.error('❌ Database connection error:', error);
     process.exit(1);
