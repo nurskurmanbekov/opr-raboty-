@@ -10,6 +10,9 @@ import HomeScreen from '../screens/HomeScreen';
 import WorkSessionScreen from '../screens/WorkSessionScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import QRScannerScreen from '../screens/QRScannerScreen';
+import FaceVerificationScreen from '../screens/FaceVerificationScreen';
+import CompleteSessionScreen from '../screens/CompleteSessionScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -127,6 +130,31 @@ const AppNavigator = () => {
           name="WorkSession"
           component={WorkSessionScreen}
           options={{ title: 'Рабочая сессия' }}
+        />
+        <Stack.Screen
+          name="QRScanner"
+          component={QRScannerScreen}
+          options={{
+            title: 'Сканировать QR код',
+            headerBackTitle: 'Назад'
+          }}
+        />
+        <Stack.Screen
+          name="FaceVerification"
+          component={FaceVerificationScreen}
+          options={{
+            title: 'Подтверждение личности',
+            headerBackTitle: 'Назад',
+            gestureEnabled: false // Prevent going back during face verification
+          }}
+        />
+        <Stack.Screen
+          name="CompleteSession"
+          component={CompleteSessionScreen}
+          options={{
+            title: 'Завершение смены',
+            headerBackTitle: 'Назад'
+          }}
         />
       </Stack.Navigator>
     </NavigationContainer>

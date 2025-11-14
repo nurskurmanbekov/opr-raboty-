@@ -249,35 +249,15 @@ const WorkSessionScreen = ({ navigation }) => {
       return;
     }
 
-    // ⭐ КРИТИЧНО: Проверка Face ID селфи (ОБЯЗАТЕЛЬНО!)
-    if (!faceIdSelfie) {
-      Alert.alert(
-        '❌ Face ID обязателен',
-        'Перед началом работы необходимо сделать селфи для Face ID верификации. Это требование антикоррупционной защиты.',
-        [
-          {
-            text: 'Сделать селфи',
-            onPress: handleTakeFaceIdSelfie
-          }
-        ]
-      );
-      return;
-    }
-
-    // Check if in geofence
-    if (geofenceStatus && !geofenceStatus.isInGeofence) {
-      Alert.alert(
-        'Предупреждение',
-        'Вы находитесь вне рабочей зоны. Продолжить?',
-        [
-          { text: 'Отмена', style: 'cancel' },
-          { text: 'Продолжить', onPress: () => startSessionConfirmed() }
-        ]
-      );
-      return;
-    }
-
-    startSessionConfirmed();
+    // Navigate to QR Scanner screen for MTU check-in
+    // The flow will be: QR Scanner → Face Verification → Complete Session
+    navigation.navigate('QRScanner', {
+      userId: user.id,
+      location: {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude
+      }
+    });
   };
 
   const startSessionConfirmed = async () => {
@@ -504,55 +484,14 @@ const WorkSessionScreen = ({ navigation }) => {
       return;
     }
 
-    Alert.alert(
-      'Завершить сессию?',
-      'Вы уверены, что хотите завершить рабочую сессию?',
-      [
-        { text: 'Отмена', style: 'cancel' },
-        {
-          text: 'Завершить',
-          onPress: async () => {
-            setLoading(true);
-            try {
-              const endData = {
-                endLatitude: location.coords.latitude,
-                endLongitude: location.coords.longitude,
-              };
-
-              if (isOnline) {
-                await workSessionsAPI.endWorkSession(session.id, endData);
-              } else {
-                // Queue for offline sync
-                await offlineQueue.addToQueue('update_work_session', {
-                  workSessionId: session.id,
-                  ...endData
-                });
-              }
-
-              await AsyncStorage.removeItem('activeSession');
-              stopLocationTracking();
-
-              if (timerInterval.current) {
-                clearInterval(timerInterval.current);
-              }
-
-              Alert.alert(
-                'Успех',
-                isOnline ? 'Рабочая сессия завершена' : 'Рабочая сессия завершена (будет синхронизировано)',
-                [{ text: 'OK', onPress: () => navigation.goBack() }]
-              );
-            } catch (error) {
-              Alert.alert(
-                'Ошибка',
-                error.response?.data?.message || 'Не удалось завершить сессию'
-              );
-            } finally {
-              setLoading(false);
-            }
-          },
-        },
-      ]
-    );
+    // Navigate to Complete Session screen for work description and photos
+    navigation.navigate('CompleteSession', {
+      sessionId: session.id,
+      location: {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude
+      }
+    });
   };
 
   const formatTime = (seconds) => {
@@ -638,55 +577,21 @@ const WorkSessionScreen = ({ navigation }) => {
         )}
       </View>
 
-      {/* Face ID Card - Show only when NO active session */}
+      {/* Workflow Info Card - Show only when NO active session */}
       {!session && (
         <View style={[styles.card, { backgroundColor: colors.card }]}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>🔐 Face ID Верификация</Text>
-
-          {faceIdSelfie ? (
-            <View>
-              <View style={styles.faceIdPreview}>
-                <Image
-                  source={{ uri: faceIdSelfie }}
-                  style={styles.faceIdImage}
-                  resizeMode="cover"
-                />
-              </View>
-              <View style={[styles.faceIdSuccess, { backgroundColor: colors.successBackground }]}>
-                <Text style={[styles.faceIdSuccessText, { color: colors.successText }]}>
-                  ✅ Селфи готово к верификации
-                </Text>
-              </View>
-              <Button
-                title="🔄 Переснять селфи"
-                onPress={handleTakeFaceIdSelfie}
-                style={[styles.retakeButton, { backgroundColor: colors.textSecondary }]}
-              />
-            </View>
-          ) : (
-            <View>
-              <Text style={[styles.faceIdInfo, { color: colors.textSecondary }]}>
-                Для начала работы необходимо сделать селфи для Face ID верификации.
-                Это требование антикоррупционной защиты.
-              </Text>
-              <Button
-                title="📸 Сделать селфи для Face ID"
-                onPress={handleTakeFaceIdSelfie}
-                style={[styles.faceIdButton, { backgroundColor: colors.primary }]}
-              />
-            </View>
-          )}
-
-          {faceIdStatus && !faceIdStatus.verified && (
-            <View style={[styles.faceIdError, { backgroundColor: colors.errorBackground }]}>
-              <Text style={[styles.faceIdErrorText, { color: colors.errorText }]}>
-                ❌ {faceIdStatus.reason || 'Верификация не прошла'}
-              </Text>
-              <Text style={[styles.faceIdErrorDetails, { color: colors.errorText }]}>
-                Схожесть: {(faceIdStatus.confidence * 100).toFixed(1)}%
-              </Text>
-            </View>
-          )}
+          <Text style={[styles.cardTitle, { color: colors.text }]}>📋 Процесс начала работы</Text>
+          <View style={styles.workflowSteps}>
+            <Text style={[styles.workflowStep, { color: colors.textSecondary }]}>
+              1️⃣ Сканировать QR код на месте работы (MTU)
+            </Text>
+            <Text style={[styles.workflowStep, { color: colors.textSecondary }]}>
+              2️⃣ Подтверждение личности через Face ID (3 фото)
+            </Text>
+            <Text style={[styles.workflowStep, { color: colors.textSecondary }]}>
+              3️⃣ Начало рабочей смены
+            </Text>
+          </View>
         </View>
       )}
 
@@ -708,7 +613,7 @@ const WorkSessionScreen = ({ navigation }) => {
           </>
         ) : (
           <Button
-            title={faceIdSelfie ? "✅ Начать работу (с Face ID)" : "Начать рабочую сессию"}
+            title="🚀 Начать рабочую смену"
             onPress={handleStartSession}
             loading={loading}
             disabled={!location}
@@ -892,6 +797,14 @@ const styles = StyleSheet.create({
   },
   faceIdErrorDetails: {
     fontSize: 14,
+  },
+  workflowSteps: {
+    gap: 12,
+  },
+  workflowStep: {
+    fontSize: 15,
+    lineHeight: 22,
+    paddingLeft: 8,
   },
 });
 
