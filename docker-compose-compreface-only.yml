@@ -1,0 +1,161 @@
+version: '3.8'
+
+# ========================================
+# COMPREFACE для Proxmox LXC
+# ========================================
+# Только Face Recognition сервисы
+# Backend на Windows Server подключается по IP:8002
+#
+# Запуск: docker-compose up -d
+# Остановка: docker-compose down
+# Логи: docker-compose logs -f
+# ========================================
+
+services:
+  # CompreFace PostgreSQL Database
+  compreface_db:
+    image: postgres:15-alpine
+    container_name: compreface_postgres
+    environment:
+      POSTGRES_DB: compreface
+      POSTGRES_USER: compreface
+      POSTGRES_PASSWORD: compreface_secure_password_2024
+      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=C"
+    volumes:
+      - compreface_db_data:/var/lib/postgresql/data
+    networks:
+      - compreface_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U compreface -d compreface"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Ограничение памяти для PostgreSQL
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  # CompreFace Admin Service (для первоначальной настройки)
+  compreface_admin:
+    image: exadel/compreface-admin:latest
+    container_name: compreface_admin
+    environment:
+      POSTGRES_URL: jdbc:postgresql://compreface_db:5432/compreface
+      POSTGRES_USER: compreface
+      POSTGRES_PASSWORD: compreface_secure_password_2024
+      # ОПТИМИЗАЦИЯ: 512MB вместо 2GB
+      ADMIN_JAVA_OPTS: -Xmx512m -Xms256m -XX:+UseG1GC -XX:MaxGCPauseMillis=200
+      SPRING_PROFILES_ACTIVE: dev
+    ports:
+      - "8001:8080"  # Admin UI
+    depends_on:
+      compreface_db:
+        condition: service_healthy
+    networks:
+      - compreface_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/admin/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    # Ограничение памяти
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+        reservations:
+          memory: 512M
+
+  # CompreFace API Service (ОСНОВНОЙ - подключается Backend)
+  compreface_api:
+    image: exadel/compreface-api:latest
+    container_name: compreface_api
+    environment:
+      POSTGRES_URL: jdbc:postgresql://compreface_db:5432/compreface
+      POSTGRES_USER: compreface
+      POSTGRES_PASSWORD: compreface_secure_password_2024
+      # ОПТИМИЗАЦИЯ: 1.5GB вместо 2GB
+      API_JAVA_OPTS: -Xmx1536m -Xms768m -XX:+UseG1GC -XX:MaxGCPauseMillis=200
+      SPRING_PROFILES_ACTIVE: dev
+      # Подключение к Core
+      COMPREFACE_CORE_HOST: compreface_core
+      COMPREFACE_CORE_PORT: 3000
+    ports:
+      - "8002:8080"  # ← ВАЖНО! Backend подключается сюда
+    depends_on:
+      compreface_db:
+        condition: service_healthy
+      compreface_core:
+        condition: service_started
+    networks:
+      - compreface_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/api/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    # Ограничение памяти
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1536M
+
+  # CompreFace Core (ML движок - Face Recognition)
+  compreface_core:
+    image: exadel/compreface-core:latest
+    container_name: compreface_core
+    environment:
+      ML_PORT: 3000
+      # Оптимизация для production
+      WORKERS: 2  # Количество workers для обработки запросов
+    ports:
+      - "8003:3000"  # Опционально (для отладки)
+    networks:
+      - compreface_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    # Ограничение памяти для ML (самый тяжелый)
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 3G
+
+volumes:
+  compreface_db_data:
+    driver: local
+
+networks:
+  compreface_network:
+    driver: bridge
+
+# ========================================
+# НАСТРОЙКА ПОСЛЕ ПЕРВОГО ЗАПУСКА:
+# ========================================
+# 1. Открыть в браузере: http://<IP_LXC>:8001
+# 2. Создать аккаунт
+# 3. Создать приложение "Probation System"
+# 4. Скопировать API Key
+# 5. На Windows Server в backend/.env добавить:
+#    COMPREFACE_API_URL=http://<IP_LXC>:8002
+#    COMPREFACE_API_KEY=<скопированный_ключ>
+# 6. Перезапустить Backend
+#
+# ГОТОВО! Backend теперь использует CompreFace!
+# ========================================

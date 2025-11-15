@@ -1,0 +1,195 @@
+version: '3.8'
+
+# ПОЛНАЯ ВЕРСИЯ с оптимизированным CompreFace
+# Требования: ~6-8 GB RAM (вместо 10 GB)
+# Запуск: docker-compose -f docker-compose.full.yml up
+
+services:
+  # ========================================
+  # ОСНОВНОЕ ПРИЛОЖЕНИЕ
+  # ========================================
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: probation_postgres
+    environment:
+      POSTGRES_DB: probation_db
+      POSTGRES_USER: probation_user
+      POSTGRES_PASSWORD: probation_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - probation_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U probation_user -d probation_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend (Node.js/Express)
+  backend:
+    build: ./backend
+    container_name: probation_backend
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgres://probation_user:probation_pass@postgres:5432/probation_db
+      JWT_SECRET: your_jwt_secret_change_in_production
+      PORT: 5000
+
+      # CompreFace включен
+      COMPREFACE_ENABLED: "true"
+      COMPREFACE_API_URL: http://compreface_api:8080
+      COMPREFACE_API_KEY: "00000000-0000-0000-0000-000000000002"
+      COMPREFACE_FACE_COLLECTION: probation_clients
+      FACE_SIMILARITY_THRESHOLD: "0.85"
+      FACE_MAX_ATTEMPTS: "10"
+      FACE_LOCKOUT_DURATION_MINUTES: "30"
+
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - ./backend/uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      compreface_api:
+        condition: service_started
+    networks:
+      - probation_network
+    restart: unless-stopped
+    command: npm run dev
+
+  # Frontend (React + Vite)
+  frontend:
+    build: ./frontend
+    container_name: probation_frontend
+    environment:
+      VITE_API_URL: http://localhost:5000/api
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - probation_network
+    restart: unless-stopped
+    command: npm run dev
+
+  # ========================================
+  # COMPREFACE (ОПТИМИЗИРОВАННЫЙ)
+  # ========================================
+
+  # CompreFace PostgreSQL Database
+  compreface_db:
+    image: postgres:15-alpine
+    container_name: compreface_postgres
+    environment:
+      POSTGRES_DB: compreface
+      POSTGRES_USER: compreface
+      POSTGRES_PASSWORD: compreface_pwd
+    volumes:
+      - compreface_db_data:/var/lib/postgresql/data
+    networks:
+      - probation_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U compreface"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Ограничение памяти для БД
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # CompreFace Admin Service (только для первоначальной настройки)
+  compreface_admin:
+    image: exadel/compreface-admin:latest
+    container_name: compreface_admin
+    environment:
+      POSTGRES_URL: jdbc:postgresql://compreface_db:5432/compreface
+      POSTGRES_USER: compreface
+      POSTGRES_PASSWORD: compreface_pwd
+      # ОПТИМИЗАЦИЯ: 512MB вместо 2GB
+      ADMIN_JAVA_OPTS: -Xmx512m -Xms256m
+      SPRING_PROFILES_ACTIVE: dev
+    ports:
+      - "8001:8080"
+    depends_on:
+      compreface_db:
+        condition: service_healthy
+    networks:
+      - probation_network
+    restart: unless-stopped
+    # Ограничение памяти
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+        reservations:
+          memory: 512M
+
+  # CompreFace API Service (основной для распознавания)
+  compreface_api:
+    image: exadel/compreface-api:latest
+    container_name: compreface_api
+    environment:
+      POSTGRES_URL: jdbc:postgresql://compreface_db:5432/compreface
+      POSTGRES_USER: compreface
+      POSTGRES_PASSWORD: compreface_pwd
+      # ОПТИМИЗАЦИЯ: 1GB вместо 2GB
+      API_JAVA_OPTS: -Xmx1g -Xms512m
+      SPRING_PROFILES_ACTIVE: dev
+    ports:
+      - "8002:8080"
+    depends_on:
+      compreface_db:
+        condition: service_healthy
+    networks:
+      - probation_network
+    restart: unless-stopped
+    # Ограничение памяти
+    deploy:
+      resources:
+        limits:
+          memory: 1536M
+        reservations:
+          memory: 1024M
+
+  # CompreFace Core (ML движок - самый тяжелый)
+  compreface_core:
+    image: exadel/compreface-core:latest
+    container_name: compreface_core
+    environment:
+      ML_PORT: 3000
+    ports:
+      - "8003:3000"
+    networks:
+      - probation_network
+    restart: unless-stopped
+    # Ограничение памяти для ML
+    deploy:
+      resources:
+        limits:
+          memory: 3G
+        reservations:
+          memory: 2G
+
+volumes:
+  postgres_data:
+    name: probation_postgres_data
+  compreface_db_data:
+    name: compreface_db_data
+
+networks:
+  probation_network:
+    driver: bridge
